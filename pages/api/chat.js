@@ -1,44 +1,62 @@
-
-// ✅ BACKEND - chat.js — Mística com introdução curta, pedido de dados antes da tiragem
+import tarotDeck from "../../lib/tarotDeck";
 
 export default async function handler(req, res) {
   const { message, userId, planoAtivo, historico = [] } = req.body;
 
+  // Função para sortear uma carta aleatória do tarotDeck
+  function sortearCartaAleatoria() {
+    const cartas = Object.entries(tarotDeck);
+    const [nome, dados] = cartas[Math.floor(Math.random() * cartas.length)];
+    const invertida = Math.random() < 0.5;
+
+    return {
+      nome,
+      imagem: dados.image,
+      significado: invertida ? dados.inverted : dados.normal,
+      invertida,
+    };
+  }
+
+  // Verifica se a mensagem é uma solicitação de tiragem
+  const solicitouTiragemGratis = historico.length > 0 && historico.some(m =>
+    m.role === "user" &&
+    m.content.toLowerCase().includes("meu nome") &&
+    m.content.toLowerCase().includes("idade") &&
+    m.content.toLowerCase().includes("cidade")
+  );
+
+  if (solicitouTiragemGratis) {
+    const carta = sortearCartaAleatoria();
+
+    return res.status(200).json({
+      text: `✨ Sua tiragem gratuita foi realizada:<br><strong>${carta.nome}</strong> ${
+        carta.invertida ? "(invertida)" : ""
+      }<br><img src="${carta.imagem}" width="120"/><br><em>${carta.significado}</em><br><br>
+Se desejar uma leitura mais profunda ou um ritual personalizado, posso preparar algo especial. Escolha um plano:<br>
+1 - Tiragem Básica (R$39,90)<br>
+2 - Ritual + Tiragem em PDF (R$49,90)<br>
+3 - Pacote Místico Completo (R$79,90)`
+    });
+  }
+
+  // Caso contrário, continue com o GPT como assistente místico
   const messages = [
     {
       role: "system",
       content: `Você é Mística, uma sacerdotisa celta conectada aos oráculos espirituais.
 
 INÍCIO:
-- Quando a conversa começar, você deve dizer algo como:
+- Quando a conversa começar, diga:
   "Sou Mística, sacerdotisa do oráculo espiritual."
-- Em seguida, envie uma segunda mensagem:
+- Em seguida:
   "Posso tirar uma carta gratuita para você, mas preciso me conectar com o plano astral..."
   "Por favor, me diga seu nome, idade e cidade onde vive."
 
 REGRAS:
-- Somente após o usuário enviar essas informações, você realiza a tiragem grátis.
-- Sorteie uma entre:
-  - A Sacerdotisa: Intuição e revelações.
-  - O Eremita: Sabedoria interior.
-  - A Lua: Verdades ocultas virão à tona.
-
-- Depois da tiragem gratuita, ofereça:
-  "Se desejar uma leitura mais profunda ou um ritual personalizado, posso preparar algo especial. Escolha um plano:"
-  "1 - Tiragem Básica (R$39,90)"
-  "2 - Ritual + Tiragem em PDF (R$49,90)"
-  "3 - Pacote Místico Completo (R$79,90)"
-
-- Se o usuário digitar 1, 2 ou 3, envie os links:
-  1 → https://pag.ae/7_KikqKHQ
-  2 → https://pag.ae/7_Kim2Cpu
-  3 → https://pag.ae/7_KikNwX9
-
-- Ao receber "paguei", diga: "Consultando o oráculo..." e aguarde o sistema liberar o plano via /verificar.js
-
-- Se o usuário fugir do assunto e depois voltar, pergunte: "Você chegou a pagar algum dos pacotes espirituais?"
-
-- Sempre use uma linguagem simbólica, mística, nunca técnica.`,
+- Só depois dessas informações a tiragem gratuita será feita.
+- Use linguagem simbólica e espiritual, nunca técnica.
+- Após a tiragem, ofereça os planos pagos e links.
+- Use sempre uma linguagem mística e envolvente.`,
     },
     ...historico,
     {
@@ -60,5 +78,8 @@ REGRAS:
   });
 
   const data = await resposta.json();
-  res.status(200).json({ text: data.choices[0].message.content });
+
+  return res.status(200).json({
+    text: data.choices[0].message.content,
+  });
 }
