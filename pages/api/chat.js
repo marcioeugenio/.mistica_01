@@ -1,5 +1,3 @@
-import tarotDeck from "../../lib/tarotDeck";
-
 export default async function handler(req, res) {
   const { message, userId = "default", historico = [], etapa = 0, respostasExtras = 0 } = req.body;
   const userMessage = message.toLowerCase();
@@ -70,13 +68,19 @@ export default async function handler(req, res) {
 
   if (etapa === 3) {
     novaEtapa = 4;
+    let mensagemAdicional = "";
+
+    if (userMessage.includes("cansado") || userMessage.includes("pobre")) {
+      mensagemAdicional = "Eu entendo, esses desafios podem pesar em sua jornada. O fato de você estar cansado pode ser um sinal de que você precisa de mais equilíbrio em sua vida. Às vezes, é necessário parar e reavaliar as escolhas feitas, para poder avançar com mais clareza e propósito.";
+    } else if (userMessage.includes("desafio") || userMessage.includes("problemas")) {
+      mensagemAdicional = "Passar por dificuldades pode ser doloroso, mas é importante lembrar que esses momentos são oportunidades para crescimento. Tente focar nas lições que essas experiências podem trazer e busque a força para continuar avançando.";
+    }
+
     return res.status(200).json({
       etapa: novaEtapa, respostasExtras: 0, sequencia: [
+        { texto: mensagemAdicional, delay: 2000 },
         {
-          texto: `Escolha um dos caminhos espirituais:<br><br>
-1 - Visão Mística (3 cartas) - R$39,90<br>
-2 - Pacote Místico Completo (5 cartas) - R$69,90<br><br>
-Após o pagamento, digite 1 ou 2 para iniciar.`,
+          texto: "Escolha um dos caminhos espirituais:<br><br>1 - Visão Mística (3 cartas) - R$39,90<br>2 - Pacote Místico Completo (5 cartas) - R$69,90<br><br>Após o pagamento, digite 1 ou 2 para iniciar.",
           delay: 2500
         }
       ]
