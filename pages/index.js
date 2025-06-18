@@ -1,5 +1,3 @@
-// pages/index.js com controle de etapa e respostasExtras
-
 import { useState } from "react";
 
 export default function Home() {
@@ -7,6 +5,7 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [etapa, setEtapa] = useState(0);
   const [respostasExtras, setRespostasExtras] = useState(0);
+  const [planoSelecionado, setPlanoSelecionado] = useState(null); // ✅ Novo estado
   const [isLoading, setIsLoading] = useState(false);
 
   const sendMessage = async () => {
@@ -26,15 +25,24 @@ export default function Home() {
           userId: "usuario1",
           etapa,
           respostasExtras,
-          historico: messages.filter(m => m.sender === "você").map(m => ({ role: "user", content: m.content }))
+          planoSelecionado, // ✅ Envia plano ao backend
+          historico: messages
+            .filter(m => m.sender === "você")
+            .map(m => ({ role: "user", content: m.content }))
         })
       });
 
       const data = await response.json();
       const novaEtapa = data.etapa !== undefined ? data.etapa : etapa;
       const novasRespostas = data.respostasExtras !== undefined ? data.respostasExtras : respostasExtras;
+
       setEtapa(novaEtapa);
       setRespostasExtras(novasRespostas);
+
+      // ✅ Salva plano retornado, se vier do backend
+      if (data.planoSelecionado) {
+        setPlanoSelecionado(data.planoSelecionado);
+      }
 
       const delays = data.sequencia || [];
       let acumulado = 0;
@@ -45,7 +53,10 @@ export default function Home() {
         }, acumulado);
       }
     } catch (error) {
-      setMessages((prev) => [...prev, { sender: "mística", content: "Erro ao obter resposta." }]);
+      setMessages((prev) => [
+        ...prev,
+        { sender: "mística", content: "Erro ao obter resposta." }
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +73,7 @@ export default function Home() {
       <div id="chat" style={{ background: "#111", padding: 20, minHeight: 300, marginBottom: 20 }}>
         {messages.map((msg, index) => (
           <div key={index} style={{ marginBottom: 10 }}>
-            <strong style={{ color: msg.sender === "você" ? "#00f" : "#f0f" }}>{msg.sender}:</strong> {" "}
+            <strong style={{ color: msg.sender === "você" ? "#00f" : "#f0f" }}>{msg.sender}:</strong>{" "}
             <span dangerouslySetInnerHTML={{ __html: msg.content }} />
           </div>
         ))}
@@ -78,7 +89,9 @@ export default function Home() {
           style={{ flex: 1, padding: 10 }}
           placeholder="Digite sua mensagem..."
         />
-        <button onClick={sendMessage} style={{ padding: "10px 20px", marginLeft: 5 }}>Enviar</button>
+        <button onClick={sendMessage} style={{ padding: "10px 20px", marginLeft: 5 }}>
+          Enviar
+        </button>
       </div>
     </div>
   );
