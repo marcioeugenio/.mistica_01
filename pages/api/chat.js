@@ -78,23 +78,15 @@ export default async function handler(req, res) {
   }
 
   if (etapa === 3) {
-    novaEtapa = 31;
-    const respostaEmpatica = await respostaIA(`A pessoa respondeu: "${userMessage}". Reaja como uma sacerdotisa espiritual acolhedora, com empatia e sabedoria.`);
-    return res.status(200).json({
-      etapa: novaEtapa,
-      respostasExtras: 0,
-      sequencia: [
-        { texto: respostaEmpatica, delay: 2000 }
-      ]
-    });
-  }
-
-  if (etapa === 31) {
     novaEtapa = 4;
+
+    const respostaEmpatica = await respostaIA(`A pessoa disse: "${userMessage}". Reaja como Mística, uma sacerdotisa espiritual. Dê uma resposta acolhedora e curta, com no máximo 3 frases.`);
+
     return res.status(200).json({
       etapa: novaEtapa,
       respostasExtras: 0,
       sequencia: [
+        { texto: respostaEmpatica, delay: 1500 },
         {
           texto: "✨ Se você deseja aprofundar sua jornada espiritual, posso revelar ainda mais orientações através dos caminhos abaixo:",
           delay: 1500
