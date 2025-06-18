@@ -3,9 +3,11 @@ import tarotDeck from "../../lib/tarotDeck";
 export default async function handler(req, res) {
   const { message, userId, planoAtivo, historico = [] } = req.body;
   const userMessage = message.toLowerCase();
+
   const frasesPagamento = ["paguei", "já paguei", "fiz o pix", "assinei", "enviei", "comprei", "fiz o pagamento"];
   const pagamentoDetectado = frasesPagamento.some(f => userMessage.includes(f));
   const tirouCartaGratis = historico.some(h => h.content?.toLowerCase().includes("a carta que saiu para você"));
+
   const dadosRecebidos = userMessage.includes("nome") && userMessage.includes("idade") && userMessage.includes("cidade");
 
   const sortearCarta = (filtro) => {
@@ -17,22 +19,25 @@ export default async function handler(req, res) {
     return { nome, posicao, significado: dados[posicao], imagem: dados.image };
   };
 
-  // 👇 Introdução padrão se a pessoa ainda não mandou nada útil
-  if (!tirouCartaGratis && !pagamentoDetectado && !message.includes("1") && !message.includes("2") && historico.length === 0) {
+  // 👋 Mensagem inicial da Mística
+  if (!tirouCartaGratis && !pagamentoDetectado && historico.length === 0) {
     return res.status(200).json({
       sequencia: [
         { texto: "Sou Mística, sacerdotisa do oráculo espiritual.", delay: 1000 },
-        { texto: "Posso tirar uma carta gratuita para você. Por favor, diga seu nome, idade e cidade onde vive.", delay: 2000 }
+        {
+          texto: "Posso tirar uma carta gratuita para você. Para isso, diga seu nome, idade e cidade onde vive.",
+          delay: 2000
+        }
       ]
     });
   }
 
-  // 👇 Tiragem gratuita após envio dos dados
+  // 🃏 Tiragem gratuita
   if (!tirouCartaGratis && dadosRecebidos) {
     const carta = sortearCarta("maiores");
     return res.status(200).json({
       sequencia: [
-        { texto: `✨ Conectando-se ao plano astral...`, delay: 1500 },
+        { texto: "✨ Conectando-se ao plano astral...", delay: 1500 },
         {
           texto: `A carta que saiu para você foi <strong>${carta.nome}</strong> na posição <strong>${carta.posicao}</strong>:<br><img src="${carta.imagem}" width="120" style="margin-top:10px;" />`,
           delay: 1500
@@ -49,18 +54,19 @@ Digite 1 ou 2 para escolher.`,
     });
   }
 
-  // 👇 Tiragem paga após pagamento ou escolha do plano
+  // 💰 Tiragem paga (após plano ou pagamento)
   if (pagamentoDetectado || message === "1" || message === "2") {
     const plano = message === "2" || userMessage.includes("completo") ? "completo" : "visao";
     const total = plano === "completo" ? 5 : 3;
     const filtro = plano === "completo" ? "todos" : "maiores";
-    const cartas = [], usadas = new Set();
 
+    const cartas = [];
+    const usadas = new Set();
     while (cartas.length < total) {
-      const c = sortearCarta(filtro);
-      if (!usadas.has(c.nome)) {
-        usadas.add(c.nome);
-        cartas.push(c);
+      const carta = sortearCarta(filtro);
+      if (!usadas.has(carta.nome)) {
+        usadas.add(carta.nome);
+        cartas.push(carta);
       }
     }
 
@@ -86,12 +92,18 @@ Digite 1 ou 2 para escolher.`,
 
     const final = await explicacaoFinal.json();
     const conclusao = final.choices[0].message.content;
-    const sequencia = [];
 
-    cartas.forEach((carta, i) => {
+    const sequencia = [];
+    cartas.forEach((c, i) => {
       sequencia.push(
-        { texto: `Carta ${i + 1}: <strong>${carta.nome}</strong> (${carta.posicao})<br><img src="${carta.imagem}" width="120" style="margin-top:10px;" />`, delay: 1000 },
-        { texto: `<em>${carta.significado}</em>`, delay: 3000 }
+        {
+          texto: `Carta ${i + 1}: <strong>${c.nome}</strong> (${c.posicao})<br><img src="${c.imagem}" width="120" style="margin-top:10px;" />`,
+          delay: 1000
+        },
+        {
+          texto: `<em>${c.significado}</em>`,
+          delay: 3000
+        }
       );
     });
 
@@ -101,7 +113,7 @@ Digite 1 ou 2 para escolher.`,
     return res.status(200).json({ sequencia });
   }
 
-  // 👇 Fallback — conversa normal com IA
+  // 💬 Fallback: conversa normal com IA
   const messages = [
     {
       role: "system",
