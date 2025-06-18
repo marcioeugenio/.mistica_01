@@ -41,41 +41,47 @@ export default function Home() {
     setMensagem("");
     setDigitando(true);
 
-    const resposta = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: mensagem,
-        userId: userIdRef.current,
-        planoAtivo,
-        historico: historicoAtualizado
-          .filter((m) => m.remetente !== "sistema")
-          .map((m) => ({
-            role: m.remetente === "você" ? "user" : "assistant",
-            content: m.texto,
-          })),
-      }),
-    });
+    try {
+      const resposta = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: mensagem,
+          userId: userIdRef.current,
+          planoAtivo,
+          historico: historicoAtualizado
+            .filter((m) => m.remetente !== "sistema")
+            .map((m) => ({
+              role: m.remetente === "você" ? "user" : "assistant",
+              content: m.texto,
+            })),
+        }),
+      });
 
-    const data = await resposta.json();
+      const data = await resposta.json();
 
-    // ✅ Suporte a múltiplas mensagens com delay
-    if (Array.isArray(data.sequencia)) {
-      for (const msg of data.sequencia) {
-        await new Promise((resolve) => setTimeout(resolve, msg.delay || 1000));
+      if (Array.isArray(data.sequencia)) {
+        for (const msg of data.sequencia) {
+          await new Promise((resolve) => setTimeout(resolve, msg.delay || 1000));
+          setChat((prev) => [
+            ...prev,
+            { remetente: "mística", texto: msg.texto },
+          ]);
+        }
+      } else {
         setChat((prev) => [
           ...prev,
-          { remetente: "mística", texto: msg.texto },
+          { remetente: "mística", texto: data.text },
         ]);
       }
-    } else {
+    } catch (e) {
       setChat((prev) => [
         ...prev,
-        { remetente: "mística", texto: data.text },
+        { remetente: "mística", texto: "Erro ao obter resposta." },
       ]);
+    } finally {
+      setDigitando(false);
     }
-
-    setDigitando(false);
   };
 
   const handleKeyDown = (e) => {
