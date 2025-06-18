@@ -1,5 +1,3 @@
-
-// ✅ FRONTEND - index.js com layout fullscreen, Enter para enviar, fundo preto e animação de digitação
 import { useState, useEffect, useRef } from "react";
 
 export default function Home() {
@@ -32,15 +30,16 @@ export default function Home() {
       .replace(/\n/g, "<br>")
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
       .replace(/`(.*?)`/g, "<code>$1</code>")
+      .replace(/(https?:\/\/[^\s]+(?:\.jpg|\.jpeg|\.png|\.gif))/g, '<br><img src="$1" alt="Carta do Tarô" style="max-width:100px;border-radius:8px;border:1px solid #555;margin-top:5px;" /><br>')
       .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
 
   const enviarMensagem = async () => {
     if (!mensagem.trim()) return;
     const novaMensagem = { remetente: "você", texto: mensagem };
-    setChat([...chat, novaMensagem]);
+    setChat((prev) => [...prev, novaMensagem]);
     setMensagem("");
-
     setDigitando(true);
+
     setTimeout(async () => {
       const resposta = await fetch("/api/chat", {
         method: "POST",
@@ -59,12 +58,22 @@ export default function Home() {
       });
 
       const data = await resposta.json();
-      setChat((prevChat) => [
-        ...prevChat,
-        { remetente: "mística", texto: data.text },
-      ]);
+      const texto = data.text;
+
+      // Detectar se houve liberação de plano
+      if (
+        texto.toLowerCase().includes("tiragem de 3 cartas") ||
+        texto.toLowerCase().includes("tiragem com 5 cartas") ||
+        texto.toLowerCase().includes("liberado") ||
+        texto.toLowerCase().includes("vamos começar")
+      ) {
+        setPlanoAtivo(true);
+        localStorage.setItem("planoAtivo", "true");
+      }
+
+      setChat((prev) => [...prev, { remetente: "mística", texto }]);
       setDigitando(false);
-    }, 3000);
+    }, 1500);
   };
 
   const handleKeyDown = (e) => {
@@ -87,20 +96,10 @@ export default function Home() {
       }}
     >
       <div style={{ textAlign: "center" }}>
-        <img
-          src="/camila_perfil.jpg"
-          alt="Mística"
-          style={{
-            width: "100px",
-            borderRadius: "50%",
-            border: "2px solid #d63384",
-            marginBottom: "1rem",
-            cursor: "pointer",
-          }}
-          onClick={() => setModalImagem("/camila_perfil.jpg")}
-        />
-        <h2>Mística 🌙</h2>
-        <p style={{ fontSize: "14px" }}>Sacerdotisa do oráculo espiritual</p>
+        <h2 style={{ color: "#d63384" }}>Mística 🌙</h2>
+        <p style={{ fontSize: "14px", color: "#ccc" }}>
+          Sacerdotisa do oráculo espiritual
+        </p>
       </div>
 
       <div
@@ -111,21 +110,29 @@ export default function Home() {
           border: "1px solid #333",
           borderRadius: "8px",
           padding: "1rem",
-          height: "55vh",
+          height: "60vh",
           overflowY: "auto",
           marginBottom: "1rem",
         }}
       >
         {chat.map((msg, index) => (
-          <div key={index} style={{ marginBottom: "0.5rem" }}>
-            <strong style={{ color: msg.remetente === "você" ? "#0d6efd" : "#d63384" }}>
+          <div key={index} style={{ marginBottom: "1rem" }}>
+            <strong
+              style={{
+                color: msg.remetente === "você" ? "#0d6efd" : "#d63384",
+              }}
+            >
               {msg.remetente}:
             </strong>{" "}
-            <span dangerouslySetInnerHTML={{ __html: limparTexto(msg.texto) }} />
+            <span
+              dangerouslySetInnerHTML={{ __html: limparTexto(msg.texto) }}
+            />
           </div>
         ))}
         {digitando && (
-          <p style={{ color: "#888", fontStyle: "italic" }}>Mística está digitando...</p>
+          <p style={{ color: "#888", fontStyle: "italic" }}>
+            Mística está digitando...
+          </p>
         )}
       </div>
 
@@ -136,34 +143,20 @@ export default function Home() {
         value={mensagem}
         onChange={(e) => setMensagem(e.target.value)}
         onKeyDown={handleKeyDown}
-        style={{ resize: "none", background: "#222", color: "#fff", border: "1px solid #444" }}
+        style={{
+          resize: "none",
+          background: "#222",
+          color: "#fff",
+          border: "1px solid #444",
+        }}
       />
-      <button className="btn btn-primary" style={{ marginTop: "1rem" }} onClick={enviarMensagem}>
+      <button
+        className="btn btn-primary"
+        style={{ marginTop: "1rem" }}
+        onClick={enviarMensagem}
+      >
         Enviar
       </button>
-
-      {planoAtivo && (
-        <div style={{ marginTop: "2rem", textAlign: "center" }}>
-          <p>✨ Conteúdo desbloqueado ✨</p>
-          {[...Array(6)].map((_, i) => (
-            <img
-              key={i}
-              src={`/mistica_oraculo/mistica_${i + 1}.jpg`}
-              alt={`mistica_${i + 1}`}
-              style={{
-                width: "80px",
-                margin: "0.25rem",
-                borderRadius: "4px",
-              }}
-            />
-          ))}
-          <p style={{ marginTop: "1rem" }}>
-            <a href="/mistica_ritual.pdf" target="_blank" rel="noopener noreferrer" style={{ color: "#0dcaf0" }}>
-              📄 Ver PDF Místico
-            </a>
-          </p>
-        </div>
-      )}
 
       {modalImagem && (
         <div
@@ -183,7 +176,7 @@ export default function Home() {
         >
           <img
             src={modalImagem}
-            alt="ampliada"
+            alt="Carta"
             style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: "10px" }}
           />
         </div>
