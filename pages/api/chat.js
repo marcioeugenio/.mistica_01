@@ -3,60 +3,56 @@ import tarotDeck from "../../lib/tarotDeck";
 export default async function handler(req, res) {
   const { message, userId, planoAtivo, historico = [] } = req.body;
 
-  // Função para sortear uma carta aleatória do tarotDeck
-  function sortearCartaAleatoria() {
-    const cartas = Object.entries(tarotDeck);
-    const [nome, dados] = cartas[Math.floor(Math.random() * cartas.length)];
-    const invertida = Math.random() < 0.5;
+  const userMessage = message.toLowerCase();
+  let planoLiberado = planoAtivo;
 
-    return {
-      nome,
-      imagem: dados.image,
-      significado: invertida ? dados.inverted : dados.normal,
-      invertida,
-    };
+  // Interpretação semântica de pagamento
+  if (
+    userMessage.includes("paguei") ||
+    userMessage.includes("já paguei") ||
+    userMessage.includes("fiz o pix") ||
+    userMessage.includes("fiz o pagamento") ||
+    userMessage.includes("assinei")
+  ) {
+    planoLiberado = true;
   }
 
-  // Verifica se a mensagem é uma solicitação de tiragem
-  const solicitouTiragemGratis = historico.length > 0 && historico.some(m =>
-    m.role === "user" &&
-    m.content.toLowerCase().includes("meu nome") &&
-    m.content.toLowerCase().includes("idade") &&
-    m.content.toLowerCase().includes("cidade")
-  );
-
-  if (solicitouTiragemGratis) {
-    const carta = sortearCartaAleatoria();
-
-    return res.status(200).json({
-      text: `✨ Sua tiragem gratuita foi realizada:<br><strong>${carta.nome}</strong> ${
-        carta.invertida ? "(invertida)" : ""
-      }<br><img src="${carta.imagem}" width="120"/><br><em>${carta.significado}</em><br><br>
-Se desejar uma leitura mais profunda ou um ritual personalizado, posso preparar algo especial. Escolha um plano:<br>
-1 - Tiragem Básica (R$39,90)<br>
-2 - Ritual + Tiragem em PDF (R$49,90)<br>
-3 - Pacote Místico Completo (R$79,90)`
-    });
-  }
-
-  // Caso contrário, continue com o GPT como assistente místico
   const messages = [
     {
       role: "system",
-      content: `Você é Mística, uma sacerdotisa celta conectada aos oráculos espirituais.
+      content: `
+Você é Mística, uma sacerdotisa celta conectada aos oráculos espirituais.
 
-INÍCIO:
-- Quando a conversa começar, diga:
-  "Sou Mística, sacerdotisa do oráculo espiritual."
-- Em seguida:
-  "Posso tirar uma carta gratuita para você, mas preciso me conectar com o plano astral..."
-  "Por favor, me diga seu nome, idade e cidade onde vive."
+🧿 INÍCIO:
+- Ao iniciar a conversa, cumprimente dizendo:
+"Sou Mística, sacerdotisa do oráculo espiritual."
+- Em seguida, diga:
+"Posso tirar uma carta gratuita para você, mas preciso me conectar com o plano astral..."
+"Por favor, me diga seu nome, idade e cidade onde vive."
 
-REGRAS:
-- Só depois dessas informações a tiragem gratuita será feita.
-- Use linguagem simbólica e espiritual, nunca técnica.
-- Após a tiragem, ofereça os planos pagos e links.
-- Use sempre uma linguagem mística e envolvente.`,
+🔮 TIRAGEM GRATUITA:
+- Só tire a carta grátis após o usuário enviar essas informações.
+- Escolha aleatoriamente uma carta dos Arcanos Maiores (22) e diga se ela saiu na posição normal ou invertida.
+- Envie o nome da carta, o significado correspondente e a imagem (use a URL do objeto tarotDeck).
+
+✨ PLANOS PAGOS:
+Após a carta grátis, ofereça dois planos:
+1 - Visão Mística: Tiragem com 3 cartas dos Arcanos Maiores (R$39,90)  
+   "Ideal para quem busca clareza e orientação espiritual."
+2 - Pacote Místico Completo: Tiragem com 5 cartas do baralho completo (78 cartas) (R$69,90)  
+   "Aprofunda temas espirituais, emocionais e práticos."
+
+📎 LINKS DE PAGAMENTO:
+1 → https://pag.ae/7_KikqKHQ  
+2 → https://pag.ae/7_KikNwX9
+
+✅ Ao detectar que o usuário já pagou (por frases como "paguei", "fiz o pix", "assinei"...), libere o plano correspondente com a tiragem de 3 ou 5 cartas e envie:
+
+- Nome da carta
+- Significado (normal ou invertido)
+- Imagem da carta
+
+Use linguagem mística, fluida, sem termos técnicos.`,
     },
     ...historico,
     {
@@ -65,7 +61,7 @@ REGRAS:
     },
   ];
 
-  const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
+  const openAIResponse = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -77,9 +73,7 @@ REGRAS:
     }),
   });
 
-  const data = await resposta.json();
+  const data = await openAIResponse.json();
 
-  return res.status(200).json({
-    text: data.choices[0].message.content,
-  });
+  res.status(200).json({ text: data.choices[0].message.content });
 }
