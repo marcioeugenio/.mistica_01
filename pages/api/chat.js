@@ -101,15 +101,43 @@ export default async function handler(req, res) {
     });
   }
 
+  // 🔄 Etapa 4 agora já trata "1" ou "2" imediatamente
   if (etapa === 4) {
-    novaEtapa = 5;
-    return res.status(200).json({
-      etapa: novaEtapa,
-      respostasExtras: 0,
-      sequencia: [
-        { texto: "Escolha um plano para te ajudar a entender seu atual momento. Digite o plano desejado (1 ou 2).", delay: 1500 }
-      ]
-    });
+    if (message.trim() === "1" || message.trim() === "2") {
+      novaEtapa = 6;
+
+      const plano = message.trim() === "2" ? {
+        nome: "Pacote Místico Completo (5 cartas)",
+        total: 5,
+        filtro: "todos",
+        link: "https://pag.ae/7_LTTA1HQ"
+      } : {
+        nome: "Visão Mística (3 cartas)",
+        total: 3,
+        filtro: "maiores",
+        link: "https://pag.ae/7_LTS6xr1"
+      };
+
+      return res.status(200).json({
+        etapa: novaEtapa,
+        respostasExtras: 0,
+        planoEscolhido: plano,
+        sequencia: [
+          { texto: `Você escolheu o plano: <strong>${plano.nome}</strong>.`, delay: 1500 },
+          { texto: `Para prosseguir, realize o pagamento pelo link abaixo:<br><a href="${plano.link}" target="_blank">${plano.link}</a>`, delay: 2000 },
+          { texto: "Assim que o pagamento for confirmado, Mística revelará suas cartas sagradas. 🌙", delay: 2000 }
+        ]
+      });
+    } else {
+      novaEtapa = 5;
+      return res.status(200).json({
+        etapa: novaEtapa,
+        respostasExtras: 0,
+        sequencia: [
+          { texto: "Escolha um plano para te ajudar a entender seu atual momento. Digite o plano desejado (1 ou 2).", delay: 1500 }
+        ]
+      });
+    }
   }
 
   if (etapa === 5) {
@@ -150,8 +178,6 @@ export default async function handler(req, res) {
   }
 
   if (etapa === 6 && pagamentoDetectado) {
-    // Se chegou aqui, sorteia com base no que foi anteriormente escolhido
-    // Para manter a lógica estável, assume 5 cartas por padrão para evitar falha
     const total = message.includes("2") ? 5 : 3;
     const filtro = message.includes("2") ? "todos" : "maiores";
     novaEtapa = 7;
