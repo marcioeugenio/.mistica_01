@@ -92,8 +92,12 @@ export default async function handler(req, res) {
           delay: 1500
         },
         {
-          texto: "1 - Visão Mística (3 cartas) - R$39,90<br>2 - Pacote Místico Completo (5 cartas) - R$69,90<br><br>Após o pagamento, digite 1 ou 2 para iniciar.",
-          delay: 2500
+          texto: "1 - Visão Mística (3 cartas) - R$39,90<br>2 - Pacote Místico Completo (5 cartas) - R$69,90",
+          delay: 2000
+        },
+        {
+          texto: "Escolha um plano para te ajudar a entender seu atual momento. Digite o plano desejado.",
+          delay: 1500
         }
       ]
     });
@@ -106,15 +110,55 @@ export default async function handler(req, res) {
       respostasExtras: 0,
       sequencia: [
         {
-          texto: "🌑 A sessão gratuita foi encerrada. Para novas revelações, selecione um dos caminhos místicos e realize o pagamento.",
-          delay: 2000
+          texto: "Escolha um plano para te ajudar a entender seu atual momento. Digite o plano desejado (1 ou 2).",
+          delay: 1500
         }
       ]
     });
   }
 
-  if (etapa === 5 && (message.includes("1") || message.includes("2") || pagamentoDetectado)) {
-    novaEtapa = 6;
+  if (etapa === 5) {
+    if (message.trim() === "1" || message.trim() === "2") {
+      novaEtapa = 6;
+      const planoEscolhido = message.trim() === "2" ? "Pacote Místico Completo (5 cartas)" : "Visão Mística (3 cartas)";
+      const linkPagSeguro = message.trim() === "2"
+        ? "https://pag.ae/link-do-pacote-completo"
+        : "https://pag.ae/link-da-visao-mistica";
+
+      return res.status(200).json({
+        etapa: novaEtapa,
+        respostasExtras: 0,
+        sequencia: [
+          {
+            texto: `Você escolheu o plano: <strong>${planoEscolhido}</strong>.`,
+            delay: 1500
+          },
+          {
+            texto: `Para prosseguir, realize o pagamento pelo link abaixo:<br><a href="${linkPagSeguro}" target="_blank">${linkPagSeguro}</a>`,
+            delay: 2000
+          },
+          {
+            texto: "Assim que o pagamento for confirmado, Mística revelará suas cartas sagradas. 🌙",
+            delay: 2000
+          }
+        ]
+      });
+    } else {
+      return res.status(200).json({
+        etapa,
+        respostasExtras,
+        sequencia: [
+          {
+            texto: "Por favor, escolha um dos planos para continuar. Digite 1 ou 2 conforme sua escolha.",
+            delay: 1500
+          }
+        ]
+      });
+    }
+  }
+
+  if (etapa === 6 && pagamentoDetectado) {
+    novaEtapa = 7;
     novaRespostasExtras = 0;
 
     const total = message.includes("2") ? 5 : 3;
@@ -144,7 +188,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ etapa: novaEtapa, respostasExtras: novaRespostasExtras, sequencia });
   }
 
-  if (etapa === 6 && respostasExtras < 3) {
+  if (etapa === 7 && respostasExtras < 3) {
     novaRespostasExtras = respostasExtras + 1;
     const extra = await respostaIA(message);
     return res.status(200).json({
@@ -153,7 +197,7 @@ export default async function handler(req, res) {
     });
   }
 
-  if (etapa === 6 && respostasExtras >= 3) {
+  if (etapa === 7 && respostasExtras >= 3) {
     novaEtapa = 4;
     return res.status(200).json({
       etapa: novaEtapa, respostasExtras: 0, sequencia: [
