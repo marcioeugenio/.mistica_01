@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     message,
     etapa = 0,
     respostasExtras = 0,
-    planoSelecionado = null // ✅ Recebe o plano do frontend
+    planoSelecionado = null
   } = req.body;
 
   const userMessage = message.toLowerCase();
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         respostasExtras: 0,
         sequencia: [
           { texto: `A carta que saiu para você foi <strong>${carta}</strong>:<br><img src="${tarotDeck[carta].image}" width="120">`, delay: 2000 },
-          { texto: `Esta carta reflete sua jornada atual. Ela nos fala de um momento de <em>${tarotDeck[carta].normal}</em>. A presença dessa carta pode ser um sinal de que você está em um ponto decisivo da sua vida. Como você está sentindo essas energias agora?`, delay: 3000 },
+          { texto: `Esta carta reflete sua jornada atual. Ela nos fala de um momento de <em>${tarotDeck[carta].normal}</em>. A presença dessa carta pode ser um sinal de que você está em um ponto decisivo da sua vida.`, delay: 3000 },
           { texto: "Como você está se sentindo no momento? Está enfrentando algum desafio pessoal?", delay: 2500 }
         ]
       });
@@ -107,45 +107,7 @@ export default async function handler(req, res) {
     });
   }
 
-  if (etapa === 4) {
-    if (message.trim() === "1" || message.trim() === "2") {
-      novaEtapa = 6;
-
-      const plano = message.trim() === "2" ? {
-        nome: "Pacote Místico Completo (5 cartas)",
-        total: 5,
-        filtro: "todos",
-        link: "https://pag.ae/7_LTTA1HQ"
-      } : {
-        nome: "Visão Mística (3 cartas)",
-        total: 3,
-        filtro: "maiores",
-        link: "https://pag.ae/7_LTS6xr1"
-      };
-
-      return res.status(200).json({
-        etapa: novaEtapa,
-        respostasExtras: 0,
-        planoSelecionado: message.trim(), // ✅ Salva o plano (1 ou 2)
-        sequencia: [
-          { texto: `Você escolheu o plano: <strong>${plano.nome}</strong>.`, delay: 1500 },
-          { texto: `Para prosseguir, realize o pagamento pelo link abaixo:<br><a href="${plano.link}" target="_blank">${plano.link}</a>`, delay: 2000 },
-          { texto: "Assim que o pagamento for confirmado, Mística revelará suas cartas sagradas. 🌙", delay: 2000 }
-        ]
-      });
-    } else {
-      novaEtapa = 5;
-      return res.status(200).json({
-        etapa: novaEtapa,
-        respostasExtras: 0,
-        sequencia: [
-          { texto: "Escolha um plano para te ajudar a entender seu atual momento. Digite o plano desejado (1 ou 2).", delay: 1500 }
-        ]
-      });
-    }
-  }
-
-  if (etapa === 5) {
+  if (etapa === 4 || etapa === 5) {
     if (message.trim() === "1" || message.trim() === "2") {
       novaEtapa = 6;
 
@@ -168,22 +130,25 @@ export default async function handler(req, res) {
         sequencia: [
           { texto: `Você escolheu o plano: <strong>${plano.nome}</strong>.`, delay: 1500 },
           { texto: `Para prosseguir, realize o pagamento pelo link abaixo:<br><a href="${plano.link}" target="_blank">${plano.link}</a>`, delay: 2000 },
-          { texto: "Assim que o pagamento for confirmado, Mística revelará suas cartas sagradas. 🌙", delay: 2000 }
+          {
+            texto: "Após realizar o pagamento, me avise aqui para continuarmos com a sua consulta ao mundo espiritual. 🌙",
+            delay: 2000
+          }
         ]
       });
     } else {
+      novaEtapa = 5;
       return res.status(200).json({
-        etapa,
-        respostasExtras,
+        etapa: novaEtapa,
+        respostasExtras: 0,
         sequencia: [
-          { texto: "Por favor, escolha um dos planos para continuar. Digite 1 ou 2 conforme sua escolha.", delay: 1500 }
+          { texto: "Escolha um plano para te ajudar a entender seu atual momento. Digite o plano desejado (1 ou 2).", delay: 1500 }
         ]
       });
     }
   }
 
   if (etapa === 6 && pagamentoDetectado) {
-    // ✅ Usa planoSelecionado corretamente
     const total = planoSelecionado === "2" ? 5 : 3;
     const filtro = planoSelecionado === "2" ? "todos" : "maiores";
 
