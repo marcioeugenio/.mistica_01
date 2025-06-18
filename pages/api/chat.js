@@ -11,7 +11,6 @@ export default async function handler(req, res) {
     h.content?.toLowerCase().includes("a carta que saiu para você")
   );
 
-  // Não exige mais verificação rígida de nome/idade/cidade
   const dadosRecebidos = !tirouCartaGratis;
 
   const sortearCarta = (filtro) => {
@@ -80,7 +79,7 @@ Digite 1 ou 2 para escolher.`,
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: "gpt-3.5-turbo", // ✅ CORRIGIDO AQUI
         messages: [
           {
             role: "system",
@@ -143,9 +142,9 @@ Explique com simbolismo e profundidade, e ofereça os planos:
 1 - Visão Mística: Tiragem com 3 cartas dos Arcanos Maiores (R$39,90)  
 2 - Pacote Místico Completo: Tiragem com 5 cartas do baralho completo (R$69,90)
 
-4. Se usuário disser "1" ou "2", continue com a tiragem.
+5. Se usuário disser "1" ou "2", continue com a tiragem.
 
-5. Se disser "paguei", "assinei", "fiz o pix", ou algo parecido, libere a tiragem paga.
+6. Se disser "paguei", "assinei", "fiz o pix", ou algo parecido, libere a tiragem paga.
 
 Nunca use linguagem técnica. Sempre mística, simbólica e intuitiva. 🌙
       `.trim()
@@ -164,7 +163,7 @@ Nunca use linguagem técnica. Sempre mística, simbólica e intuitiva. 🌙
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
     },
     body: JSON.stringify({
-      model: "gpt-4",
+      model: "gpt-3.5-turbo", // ✅ CORRIGIDO AQUI TAMBÉM
       messages
     })
   });
