@@ -1,4 +1,4 @@
-// chat.js com carta grátis imediata após resposta afirmativa
+// chat.js com sorteio da carta gratuito baseado diretamente na mensagem do cliente
 
 import tarotDeck from "../../lib/tarotDeck";
 
@@ -41,48 +41,56 @@ export default async function handler(req, res) {
 
   if (etapa === 0) {
     novaEtapa = 1;
-    return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
-      { texto: "✨ Bem-vindo ao oráculo de Mística.", delay: 1000 },
-      { texto: "Deseja receber uma carta gratuita de orientação espiritual?", delay: 1500 }
-    ] });
+    return res.status(200).json({
+      etapa: novaEtapa, respostasExtras: 0, sequencia: [
+        { texto: "✨ Bem-vindo ao oráculo de Mística.", delay: 1000 },
+        { texto: "Deseja receber uma carta gratuita de orientação espiritual?", delay: 1500 }
+      ]
+    });
   }
 
   if (etapa === 1) {
-    const resposta = await respostaIA(userMessage);
-    if (resposta.toLowerCase().includes("sim")) {
+    if (userMessage.includes("sim")) {
       const carta = sortearCarta("maiores");
       novaEtapa = 3;
-      return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
-        { texto: `A carta que saiu para você foi <strong>${carta.nome}</strong> (${carta.posicao}):<br><img src="${carta.imagem}" width="120">`, delay: 2000 },
-        { texto: `<em>${carta.significado}</em>`, delay: 3000 },
-        { texto: "Se desejar uma leitura mais profunda, posso te apresentar outros caminhos...", delay: 2000 }
-      ] });
+      return res.status(200).json({
+        etapa: novaEtapa, respostasExtras: 0, sequencia: [
+          { texto: `A carta que saiu para você foi <strong>${carta.nome}</strong> (${carta.posicao}):<br><img src="${carta.imagem}" width="120">`, delay: 2000 },
+          { texto: `<em>${carta.significado}</em>`, delay: 3000 },
+          { texto: "Se desejar uma leitura mais profunda, posso te apresentar outros caminhos...", delay: 2000 }
+        ]
+      });
     } else {
+      const resposta = await respostaIA(userMessage);
       return res.status(200).json({ etapa, respostasExtras, sequencia: [{ texto: resposta, delay: 1500 }] });
     }
   }
 
   if (etapa === 3) {
     novaEtapa = 4;
-    return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
-      {
-        texto: `Escolha um dos caminhos espirituais:<br><br>
+    return res.status(200).json({
+      etapa: novaEtapa, respostasExtras: 0, sequencia: [
+        {
+          texto: `Escolha um dos caminhos espirituais:<br><br>
 1 - Visão Mística (3 cartas) - R$39,90<br>
 2 - Pacote Místico Completo (5 cartas) - R$69,90<br><br>
 Após o pagamento, digite 1 ou 2 para iniciar.`,
-        delay: 2500
-      }
-    ] });
+          delay: 2500
+        }
+      ]
+    });
   }
 
   if (etapa === 4) {
     novaEtapa = 5;
-    return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
-      {
-        texto: "🌑 A sessão gratuita foi encerrada. Para novas revelações, selecione um dos caminhos místicos e realize o pagamento.",
-        delay: 2000
-      }
-    ] });
+    return res.status(200).json({
+      etapa: novaEtapa, respostasExtras: 0, sequencia: [
+        {
+          texto: "🌑 A sessão gratuita foi encerrada. Para novas revelações, selecione um dos caminhos místicos e realize o pagamento.",
+          delay: 2000
+        }
+      ]
+    });
   }
 
   if (etapa === 5 && (message.includes("1") || message.includes("2") || await respostaIA(userMessage).then(r => r.toLowerCase().includes("paguei")))) {
@@ -119,14 +127,19 @@ Após o pagamento, digite 1 ou 2 para iniciar.`,
   if (etapa === 6 && respostasExtras < 3) {
     novaRespostasExtras = respostasExtras + 1;
     const extra = await respostaIA(message);
-    return res.status(200).json({ etapa, respostasExtras: novaRespostasExtras, sequencia: [{ texto: extra, delay: 2000 }] });
+    return res.status(200).json({
+      etapa, respostasExtras: novaRespostasExtras,
+      sequencia: [{ texto: extra, delay: 2000 }]
+    });
   }
 
   if (etapa === 6 && respostasExtras >= 3) {
     novaEtapa = 4;
-    return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
-      { texto: "🌑 A consulta foi concluída. Para mais respostas, reinicie sua jornada espiritual.", delay: 2000 }
-    ] });
+    return res.status(200).json({
+      etapa: novaEtapa, respostasExtras: 0, sequencia: [
+        { texto: "🌑 A consulta foi concluída. Para mais respostas, reinicie sua jornada espiritual.", delay: 2000 }
+      ]
+    });
   }
 
   const fallback = await respostaIA(message);
