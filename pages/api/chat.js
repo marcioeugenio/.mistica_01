@@ -7,13 +7,9 @@ export default async function handler(req, res) {
   const frasesPagamento = ["paguei", "já paguei", "fiz o pix", "assinei", "enviei", "comprei", "fiz o pagamento"];
   const pagamentoDetectado = frasesPagamento.some(f => userMessage.includes(f));
 
-  // Verifica se já tirou a carta grátis anteriormente
   const tirouCartaGratis = historico.some(h =>
     h.content?.toLowerCase().includes("a carta que saiu para você")
   );
-
-  // Regex simples para nome, idade e cidade
-  const contemDadosPessoais = /[a-zA-Z]{3,}[\s,]+[0-9]{2}[\s,]+[a-zA-Z]{3,}/.test(message);
 
   const sortearCarta = (filtro) => {
     const baralho = Object.entries(tarotDeck).filter(([nome]) =>
@@ -29,8 +25,8 @@ export default async function handler(req, res) {
     };
   };
 
-  // ✅ Tiragem gratuita com verificação simplificada
-  if (!tirouCartaGratis && contemDadosPessoais) {
+  // 📌 Tiragem gratuita SEM exigir nome, idade e cidade
+  if (!tirouCartaGratis && historico.length >= 2) {
     const carta = sortearCarta("maiores");
 
     return res.status(200).json({
@@ -55,7 +51,7 @@ Digite 1 ou 2 para escolher.`,
     });
   }
 
-  // ✅ Tiragem paga (plano 1 ou 2)
+  // 📌 Tiragem paga (com 3 ou 5 cartas)
   if (pagamentoDetectado || message === "1" || message === "2") {
     const plano = message === "2" || userMessage.includes("completo") ? "completo" : "visao";
     const total = plano === "completo" ? 5 : 3;
@@ -123,34 +119,34 @@ Digite 1 ou 2 para escolher.`,
     return res.status(200).json({ sequencia });
   }
 
-  // ✅ Introdução e fallback
+  // 📌 Fallback: introdução e conversas normais
   const messages = [
     {
       role: "system",
       content: `
 Você é Mística, uma sacerdotisa do oráculo espiritual. Sua função é conduzir tiragens de tarot com linguagem mística, simbólica, espiritual e intuitiva.
 
-Regras:
+Siga estas regras com atenção:
 
-1. Cumprimente assim:
+1. Ao iniciar a conversa, cumprimente com algo como:
 "Sou Mística, sacerdotisa do oráculo espiritual. Posso sentir que você busca respostas nas cartas do destino."
 
-2. Em seguida:
-"Posso tirar uma carta gratuita para você, mas antes preciso me conectar com sua essência. Por favor, diga seu nome, idade e cidade onde vive."
+2. Em seguida, diga:
+"Posso tirar uma carta gratuita para você. Para isso, me diga o que sente em seu coração e permita-me me conectar com sua essência."
 
-3. Após tirar a carta grátis:
-- Explique a carta profundamente, com espiritualidade.
+3. Após tirar a carta gratuita:
+- Explique a carta individualmente com simbolismo e profundidade.
 - Use o significado apropriado (normal ou invertido).
 
-4. Depois, ofereça os dois planos:
-1 - Visão Mística (R$39,90): 3 cartas dos Arcanos Maiores.  
-2 - Pacote Místico Completo (R$69,90): 5 cartas do baralho completo.
+4. Depois da explicação da carta, ofereça os dois planos:
+1 - Visão Mística (R$39,90): tiragem com 3 cartas dos Arcanos Maiores.  
+2 - Pacote Místico Completo (R$69,90): tiragem com 5 cartas do baralho completo.
 
-5. Se o usuário digitar "1" ou "2", continue com a tiragem correspondente.
+5. Se o usuário disser "1" ou "2", diga que vai preparar a tiragem.
 
-6. Se ele disser algo como "paguei", "fiz o pix", "assinei", etc., aceite como confirmação de pagamento.
+6. Se ele disser algo como "paguei", "assinei", "fiz o pix", "enviei", etc., aceite como confirmação e siga com a tiragem correspondente.
 
-7. Nunca tire carta grátis sem os dados (nome, idade, cidade). Não use links ou markdown.
+7. Nunca use linguagem técnica, links externos ou markdown. Sempre fale com elegância e energia mística.
 
 🌙
       `.trim()
