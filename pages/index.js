@@ -4,14 +4,18 @@ export default function Home() {
   const [mensagem, setMensagem] = useState("");
   const [chat, setChat] = useState([]);
   const [digitando, setDigitando] = useState(false);
-  const [modalImagem, setModalImagem] = useState(null);
-
+  const [planoAtivo, setPlanoAtivo] = useState(false);
   const chatRef = useRef(null);
   const userIdRef = useRef(
     typeof window !== "undefined"
       ? localStorage.getItem("userId") || crypto.randomUUID()
       : ""
   );
+
+  useEffect(() => {
+    const plano = localStorage.getItem("planoAtivo");
+    if (plano === "true") setPlanoAtivo(true);
+  }, []);
 
   useEffect(() => {
     if (chatRef.current) {
@@ -26,40 +30,63 @@ export default function Home() {
       .replace(/`(.*?)`/g, "<code>$1</code>")
       .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
 
+  const exibirSequencia = (sequencia) => {
+    if (!sequencia || sequencia.length === 0) return;
+
+    let index = 0;
+    const mostrarProxima = () => {
+      if (index >= sequencia.length) {
+        setDigitando(false);
+        return;
+      }
+
+      const passo = sequencia[index];
+      setDigitando(true);
+
+      setTimeout(() => {
+        setChat((prevChat) => [
+          ...prevChat,
+          { remetente: "mística", texto: passo.texto },
+        ]);
+        index++;
+        mostrarProxima();
+      }, passo.delay || 1000);
+    };
+
+    mostrarProxima();
+  };
+
   const enviarMensagem = async () => {
     if (!mensagem.trim()) return;
     const novaMensagem = { remetente: "você", texto: mensagem };
     setChat([...chat, novaMensagem]);
     setMensagem("");
-
     setDigitando(true);
+
     const resposta = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: mensagem,
         userId: userIdRef.current,
-        historico: chat
-          .filter((m) => m.remetente !== "sistema")
-          .map((m) => ({
-            role: m.remetente === "você" ? "user" : "assistant",
-            content: m.texto,
-          })),
+        planoAtivo,
+        historico: chat.map((m) => ({
+          role: m.remetente === "você" ? "user" : "assistant",
+          content: m.texto,
+        })),
       }),
     });
 
     const data = await resposta.json();
-    const sequencia = data.sequencia;
-
-    const mostrarSequencia = async () => {
-      for (const passo of sequencia) {
-        await new Promise((resolve) => setTimeout(resolve, passo.delay || 1000));
-        setChat((prev) => [...prev, { remetente: "mística", texto: passo.texto }]);
-      }
+    if (data.sequencia) {
+      exibirSequencia(data.sequencia);
+    } else {
+      setChat((prevChat) => [
+        ...prevChat,
+        { remetente: "mística", texto: data.text },
+      ]);
       setDigitando(false);
-    };
-
-    mostrarSequencia();
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -90,16 +117,13 @@ export default function Home() {
             borderRadius: "50%",
             border: "2px solid #d63384",
             marginBottom: "1rem",
-            cursor: "pointer",
           }}
-          onClick={() => setModalImagem("/camila_perfil.jpg")}
         />
         <h2>Mística 🌙</h2>
         <p style={{ fontSize: "14px" }}>Sacerdotisa do oráculo espiritual</p>
       </div>
 
       <div
-        id="chat"
         ref={chatRef}
         style={{
           background: "#111",
@@ -111,16 +135,24 @@ export default function Home() {
           marginBottom: "1rem",
         }}
       >
-        {chat.map((msg, index) => (
-          <div key={index} style={{ marginBottom: "0.5rem" }}>
-            <strong style={{ color: msg.remetente === "você" ? "#0d6efd" : "#d63384" }}>
+        {chat.map((msg, i) => (
+          <div key={i} style={{ marginBottom: "0.5rem" }}>
+            <strong
+              style={{
+                color: msg.remetente === "você" ? "#0d6efd" : "#d63384",
+              }}
+            >
               {msg.remetente}:
             </strong>{" "}
-            <span dangerouslySetInnerHTML={{ __html: limparTexto(msg.texto) }} />
+            <span
+              dangerouslySetInnerHTML={{ __html: limparTexto(msg.texto) }}
+            />
           </div>
         ))}
         {digitando && (
-          <p style={{ color: "#888", fontStyle: "italic" }}>Mística está digitando...</p>
+          <p style={{ color: "#888", fontStyle: "italic" }}>
+            Mística está digitando...
+          </p>
         )}
       </div>
 
@@ -131,33 +163,46 @@ export default function Home() {
         value={mensagem}
         onChange={(e) => setMensagem(e.target.value)}
         onKeyDown={handleKeyDown}
-        style={{ resize: "none", background: "#222", color: "#fff", border: "1px solid #444" }}
+        style={{
+          resize: "none",
+          background: "#222",
+          color: "#fff",
+          border: "1px solid #444",
+        }}
       />
-      <button className="btn btn-primary" style={{ marginTop: "1rem" }} onClick={enviarMensagem}>
+      <button
+        className="btn btn-primary"
+        style={{ marginTop: "1rem" }}
+        onClick={enviarMensagem}
+      >
         Enviar
       </button>
 
-      {modalImagem && (
-        <div
-          onClick={() => setModalImagem(null)}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0,0,0,0.85)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <img
-            src={modalImagem}
-            alt="ampliada"
-            style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: "10px" }}
-          />
+      {planoAtivo && (
+        <div style={{ marginTop: "2rem", textAlign: "center" }}>
+          <p>✨ Conteúdo desbloqueado ✨</p>
+          {[...Array(6)].map((_, i) => (
+            <img
+              key={i}
+              src={`/mistica_oraculo/mistica_${i + 1}.jpg`}
+              alt={`mistica_${i + 1}`}
+              style={{
+                width: "80px",
+                margin: "0.25rem",
+                borderRadius: "4px",
+              }}
+            />
+          ))}
+          <p style={{ marginTop: "1rem" }}>
+            <a
+              href="/mistica_ritual.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#0dcaf0" }}
+            >
+              📄 Ver PDF Místico
+            </a>
+          </p>
         </div>
       )}
     </main>
