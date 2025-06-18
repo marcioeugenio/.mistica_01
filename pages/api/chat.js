@@ -7,9 +7,10 @@ export default async function handler(req, res) {
   const frasesPagamento = ["paguei", "já paguei", "fiz o pix", "assinei", "enviei", "comprei", "fiz o pagamento"];
   const pagamentoDetectado = frasesPagamento.some(f => userMessage.includes(f));
 
-  const tirouCartaGratis = historico.some(h =>
-    h.content?.toLowerCase().includes("a carta que saiu para você")
-  );
+  // 🔄 Permitir sempre nova carta gratuita
+  const tirouCartaGratis = false;
+
+  const contemDadosPessoais = true; // ✅ deixa passar qualquer mensagem como dados
 
   const sortearCarta = (filtro) => {
     const baralho = Object.entries(tarotDeck).filter(([nome]) =>
@@ -25,8 +26,7 @@ export default async function handler(req, res) {
     };
   };
 
-  // 📌 Tiragem gratuita SEM exigir nome, idade e cidade
-  if (!tirouCartaGratis && historico.length >= 2) {
+  if (!tirouCartaGratis && contemDadosPessoais) {
     const carta = sortearCarta("maiores");
 
     return res.status(200).json({
@@ -51,7 +51,6 @@ Digite 1 ou 2 para escolher.`,
     });
   }
 
-  // 📌 Tiragem paga (com 3 ou 5 cartas)
   if (pagamentoDetectado || message === "1" || message === "2") {
     const plano = message === "2" || userMessage.includes("completo") ? "completo" : "visao";
     const total = plano === "completo" ? 5 : 3;
@@ -119,12 +118,11 @@ Digite 1 ou 2 para escolher.`,
     return res.status(200).json({ sequencia });
   }
 
-  // 📌 Fallback: introdução e conversas normais
   const messages = [
     {
       role: "system",
       content: `
-Você é Mística, uma sacerdotisa do oráculo espiritual. Sua função é conduzir tiragens de tarot com linguagem mística, simbólica, espiritual e intuitiva.
+Você é Mística, uma sacerdotisa do oráculo espiritual. Sua função é conduzir tiragens de tarot com linguagem mística, espiritual e intuitiva.
 
 Siga estas regras com atenção:
 
@@ -132,7 +130,7 @@ Siga estas regras com atenção:
 "Sou Mística, sacerdotisa do oráculo espiritual. Posso sentir que você busca respostas nas cartas do destino."
 
 2. Em seguida, diga:
-"Posso tirar uma carta gratuita para você. Para isso, me diga o que sente em seu coração e permita-me me conectar com sua essência."
+"Posso tirar uma carta gratuita para você. Me diga quando estiver pronto(a), e eu me conectarei ao plano astral."
 
 3. Após tirar a carta gratuita:
 - Explique a carta individualmente com simbolismo e profundidade.
@@ -147,8 +145,6 @@ Siga estas regras com atenção:
 6. Se ele disser algo como "paguei", "assinei", "fiz o pix", "enviei", etc., aceite como confirmação e siga com a tiragem correspondente.
 
 7. Nunca use linguagem técnica, links externos ou markdown. Sempre fale com elegância e energia mística.
-
-🌙
       `.trim()
     },
     ...historico,
