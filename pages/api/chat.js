@@ -1,7 +1,7 @@
 import tarotDeck from "../../lib/tarotDeck";
 
 export default async function handler(req, res) {
-  const { message, userId, historico = [] } = req.body;
+  const { message, userId, planoAtivo, historico = [] } = req.body;
 
   const userMessage = message.toLowerCase();
   const frasesPagamento = ["paguei", "já paguei", "fiz o pix", "assinei", "enviei", "comprei", "fiz o pagamento"];
@@ -10,8 +10,6 @@ export default async function handler(req, res) {
   const tirouCartaGratis = historico.some(h =>
     h.content?.toLowerCase().includes("a carta que saiu para você")
   );
-
-  const contemDadosPessoais = /([\p{L}]{3,})[, ]+([0-9]{2})[, ]+([\p{L}]{3,})/ui.test(message);
 
   const sortearCarta = (filtro) => {
     const baralho = Object.entries(tarotDeck).filter(([nome]) =>
@@ -27,31 +25,7 @@ export default async function handler(req, res) {
     };
   };
 
-  if (!tirouCartaGratis && contemDadosPessoais) {
-    const carta = sortearCarta("maiores");
-
-    return res.status(200).json({
-      sequencia: [
-        { texto: `✨ Conectando-se ao plano astral...`, delay: 1500 },
-        {
-          texto: `A carta que saiu para você foi <strong>${carta.nome}</strong> na posição <strong>${carta.posicao}</strong>:<br><img src="${carta.imagem}" width="120" style="margin-top:10px;" />`,
-          delay: 1500
-        },
-        {
-          texto: `<em>${carta.significado}</em>`,
-          delay: 3000
-        },
-        {
-          texto: `Se desejar uma leitura mais profunda, posso te oferecer dois caminhos:<br><br>
-1 - Visão Mística: 3 cartas dos Arcanos Maiores (R$39,90)<br>
-2 - Pacote Místico Completo: 5 cartas do baralho completo (R$69,90)<br><br>
-Digite 1 ou 2 para escolher.`,
-          delay: 2000
-        }
-      ]
-    });
-  }
-
+  // 📌 Tiragem paga (com 3 ou 5 cartas)
   if (pagamentoDetectado || message === "1" || message === "2") {
     const plano = message === "2" || userMessage.includes("completo") ? "completo" : "visao";
     const total = plano === "completo" ? 5 : 3;
@@ -119,27 +93,77 @@ Digite 1 ou 2 para escolher.`,
     return res.status(200).json({ sequencia });
   }
 
+  // 📌 Tiragem gratuita interpretada por IA
+  if (!tirouCartaGratis) {
+    const iaDetectouDados = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "Responda apenas com 'sim' ou 'não'. O texto a seguir inclui nome, idade e cidade? Exemplo: João, 25, São Paulo."
+          },
+          { role: "user", content: message }
+        ]
+      })
+    });
+
+    const json = await iaDetectouDados.json();
+    const textoIA = json.choices?.[0]?.message?.content?.toLowerCase();
+
+    if (textoIA?.includes("sim")) {
+      const carta = sortearCarta("maiores");
+
+      return res.status(200).json({
+        sequencia: [
+          { texto: `✨ Conectando-se ao plano astral...`, delay: 1500 },
+          {
+            texto: `A carta que saiu para você foi <strong>${carta.nome}</strong> na posição <strong>${carta.posicao}</strong>:<br><img src="${carta.imagem}" width="120" style="margin-top:10px;" />`,
+            delay: 1500
+          },
+          {
+            texto: `<em>${carta.significado}</em>`,
+            delay: 3000
+          },
+          {
+            texto: `Se desejar uma leitura mais profunda, posso te oferecer dois caminhos espirituais:<br><br>
+1 - Visão Mística: Tiragem com 3 cartas dos Arcanos Maiores (R$39,90)<br>
+2 - Pacote Místico Completo: Tiragem com 5 cartas do baralho completo (R$69,90)<br><br>
+Digite 1 ou 2 para escolher.`,
+            delay: 2000
+          }
+        ]
+      });
+    }
+  }
+
+  // 📌 Fallback: conversa padrão com IA
   const messages = [
     {
       role: "system",
       content: `
-Você é Mística, uma sacerdotisa do oráculo espiritual. Sua função é conduzir tiragens de tarot com linguagem mística, simbólica, espiritual e intuitiva.
+Você é Mística, uma sacerdotisa do oráculo espiritual. Fale sempre de forma mística, simbólica e intuitiva.
 
-Siga estas regras com atenção:
-
-1. Cumprimente com: "Sou Mística, sacerdotisa do oráculo espiritual. Posso sentir que você busca respostas nas cartas do destino."
-2. Em seguida: "Posso tirar uma carta gratuita para você, mas antes preciso me conectar com sua essência. Por favor, diga seu nome, idade e cidade onde vive."
-3. Só tire a carta gratuita se o usuário responder com nome, idade e cidade.
-4. Depois, ofereça os planos pagos:
-   - Visão Mística (R$39,90): 3 cartas dos Arcanos Maiores.
-   - Pacote Místico Completo (R$69,90): 5 cartas do baralho completo.
-5. Nunca faça nova tiragem sem nova confirmação de pagamento.
-6. Nunca salve estado de plano ativo.
-7. Fale com elegância espiritual e nunca use links ou termos técnicos.
-`
+1. Cumprimente com algo como: "Sou Mística, sacerdotisa do oráculo espiritual. Posso sentir que você busca respostas nas cartas do destino."
+2. Peça: "Posso tirar uma carta gratuita para você, mas antes preciso me conectar com sua essência. Diga seu nome, idade e cidade."
+3. Só tire a carta gratuita se o usuário fornecer essas 3 informações (você pode interpretar).
+4. Depois da tiragem, ofereça os dois planos:
+- Visão Mística (R$39,90): 3 cartas dos Arcanos Maiores
+- Pacote Místico Completo (R$69,90): 5 cartas do baralho completo
+5. Se o usuário disser “1”, “2” ou frases como “paguei”, “fiz o pix”, siga com a tiragem.
+🌙
+      `.trim()
     },
     ...historico,
-    { role: "user", content: message }
+    {
+      role: "user",
+      content: message
+    }
   ];
 
   const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
