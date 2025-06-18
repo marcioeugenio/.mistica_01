@@ -55,6 +55,10 @@ export default async function handler(req, res) {
         etapa: novaEtapa, respostasExtras: 0, sequencia: [
           { texto: `A carta que saiu para você foi <strong>${carta.nome}</strong> (${carta.posicao}):<br><img src="${carta.imagem}" width="120">`, delay: 2000 },
           { texto: `<em>${carta.significado}</em>`, delay: 3000 },
+          {
+            texto: `Esta carta traz uma mensagem importante para o seu momento atual. O <strong>${carta.nome}</strong> reflete aspectos como <em>${carta.significado}</em>. Em sua posição invertida, ela também revela o que está sendo bloqueado ou desafiado em sua vida. Como você está sentindo essas energias em seu caminho?`,
+            delay: 2500
+          },
           { texto: "Como você está se sentindo no momento? Está enfrentando algum desafio pessoal?", delay: 2500 }
         ]
       });
