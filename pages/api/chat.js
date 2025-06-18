@@ -64,10 +64,11 @@ export default async function handler(req, res) {
       const carta = sortearPrimeiraCarta();
       novaEtapa = 3;
       return res.status(200).json({
-        etapa: novaEtapa, respostasExtras: 0, sequencia: [
+        etapa: novaEtapa,
+        respostasExtras: 0,
+        sequencia: [
           { texto: `A carta que saiu para você foi <strong>${carta}</strong>:<br><img src="/tarot/${carta.replace(" ", "-")}.jpg" width="120">`, delay: 2000 },
-          { texto: `<em>${tarotDeck[carta].normal}</em>`, delay: 2000 },
-          { texto: `Esta carta traz uma mensagem importante para o seu momento atual. O <strong>${carta}</strong> reflete aspectos como <em>${tarotDeck[carta].normal}</em>. Em sua posição invertida, ela também revela o que está sendo bloqueado ou desafiado em sua vida. Como você está sentindo essas energias em seu caminho?`, delay: 2500 },
+          { texto: `Esta carta reflete sua jornada atual. Ela nos fala de um momento de <em>${tarotDeck[carta].normal}</em>. A presença dessa carta pode ser um sinal de que você está em um ponto decisivo da sua vida. Como você está sentindo essas energias agora?`, delay: 3000 },
           { texto: "Como você está se sentindo no momento? Está enfrentando algum desafio pessoal?", delay: 2500 }
         ]
       });
