@@ -1,7 +1,7 @@
 import tarotDeck from "../../lib/tarotDeck";
 
 export default async function handler(req, res) {
-  const { message, userId, planoAtivo, historico = [] } = req.body;
+  const { message, userId, historico = [] } = req.body;
 
   const userMessage = message.toLowerCase();
   const frasesPagamento = ["paguei", "já paguei", "fiz o pix", "assinei", "enviei", "comprei", "fiz o pagamento"];
@@ -11,7 +11,6 @@ export default async function handler(req, res) {
     h.content?.toLowerCase().includes("a carta que saiu para você")
   );
 
-  // ✅ Suporte a letras com acento, maiúsculas e minúsculas
   const contemDadosPessoais = /([\p{L}]{3,})[, ]+([0-9]{2})[, ]+([\p{L}]{3,})/ui.test(message);
 
   const sortearCarta = (filtro) => {
@@ -28,7 +27,6 @@ export default async function handler(req, res) {
     };
   };
 
-  // 📌 Tiragem gratuita
   if (!tirouCartaGratis && contemDadosPessoais) {
     const carta = sortearCarta("maiores");
 
@@ -44,9 +42,9 @@ export default async function handler(req, res) {
           delay: 3000
         },
         {
-          texto: `Se desejar uma leitura mais profunda, posso te oferecer dois caminhos espirituais:<br><br>
-1 - Visão Mística: Tiragem com 3 cartas dos Arcanos Maiores (R$39,90)<br>
-2 - Pacote Místico Completo: Tiragem com 5 cartas do baralho completo (R$69,90)<br><br>
+          texto: `Se desejar uma leitura mais profunda, posso te oferecer dois caminhos:<br><br>
+1 - Visão Mística: 3 cartas dos Arcanos Maiores (R$39,90)<br>
+2 - Pacote Místico Completo: 5 cartas do baralho completo (R$69,90)<br><br>
 Digite 1 ou 2 para escolher.`,
           delay: 2000
         }
@@ -54,7 +52,6 @@ Digite 1 ou 2 para escolher.`,
     });
   }
 
-  // 📌 Tiragem paga (com 3 ou 5 cartas)
   if (pagamentoDetectado || message === "1" || message === "2") {
     const plano = message === "2" || userMessage.includes("completo") ? "completo" : "visao";
     const total = plano === "completo" ? 5 : 3;
@@ -122,7 +119,6 @@ Digite 1 ou 2 para escolher.`,
     return res.status(200).json({ sequencia });
   }
 
-  // 📌 Fallback: introdução e conversas normais
   const messages = [
     {
       role: "system",
@@ -131,39 +127,19 @@ Você é Mística, uma sacerdotisa do oráculo espiritual. Sua função é condu
 
 Siga estas regras com atenção:
 
-1. Ao iniciar a conversa, cumprimente com algo como:
-"Sou Mística, sacerdotisa do oráculo espiritual. Posso sentir que você busca respostas nas cartas do destino."
-
-2. Em seguida, diga:
-"Posso tirar uma carta gratuita para você, mas antes preciso me conectar com sua essência. Por favor, diga seu nome, idade e cidade onde vive."
-
-⚠️ IMPORTANTE: só tire a carta grátis se o usuário responder com nome, idade e cidade.
-
-3. Após tirar a carta gratuita:
-- Explique a carta individualmente com simbolismo e profundidade.
-- Use o significado apropriado (normal ou invertido).
-
-4. Depois da explicação da carta, ofereça os dois planos:
-1 - Visão Mística (R$39,90): tiragem com 3 cartas dos Arcanos Maiores.  
-2 - Pacote Místico Completo (R$69,90): tiragem com 5 cartas do baralho completo.
-
-5. Se o usuário disser "1" ou "2", diga que vai preparar a tiragem.
-
-6. Se ele disser algo como "paguei", "assinei", "fiz o pix", "enviei", etc., aceite como confirmação e siga com a tiragem correspondente.
-
-7. Nunca use linguagem técnica, links externos ou markdown. Sempre fale com elegância e energia mística. Nunca tire carta grátis sem os dados do usuário.
-
-Se o usuário se perder, traga-o de volta com:  
-"Se deseja a carta gratuita, posso tirar uma para você. Preciso apenas do seu nome, idade e cidade."
-
-🌙
-      `.trim()
+1. Cumprimente com: "Sou Mística, sacerdotisa do oráculo espiritual. Posso sentir que você busca respostas nas cartas do destino."
+2. Em seguida: "Posso tirar uma carta gratuita para você, mas antes preciso me conectar com sua essência. Por favor, diga seu nome, idade e cidade onde vive."
+3. Só tire a carta gratuita se o usuário responder com nome, idade e cidade.
+4. Depois, ofereça os planos pagos:
+   - Visão Mística (R$39,90): 3 cartas dos Arcanos Maiores.
+   - Pacote Místico Completo (R$69,90): 5 cartas do baralho completo.
+5. Nunca faça nova tiragem sem nova confirmação de pagamento.
+6. Nunca salve estado de plano ativo.
+7. Fale com elegância espiritual e nunca use links ou termos técnicos.
+`
     },
     ...historico,
-    {
-      role: "user",
-      content: message
-    }
+    { role: "user", content: message }
   ];
 
   const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
