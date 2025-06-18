@@ -1,6 +1,6 @@
 import tarotDeck from "../../lib/tarotDeck";
 
-// Função nativa para remover acentos (compatível com Next.js/Node)
+// Função para fallback se alguma carta não tiver .image
 const removerAcentos = (texto) => {
   return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 };
@@ -79,12 +79,13 @@ export default async function handler(req, res) {
   if (etapa === 1) {
     if (userMessage.includes("sim")) {
       const carta = sortearPrimeiraCarta();
+      const img = tarotDeck[carta]?.image || formatarNomeImagem(carta);
       novaEtapa = 3;
       return res.status(200).json({
         etapa: novaEtapa,
         respostasExtras: 0,
         sequencia: [
-          { texto: `A carta que saiu para você foi <strong>${carta}</strong>:<br><img src="${formatarNomeImagem(carta)}" width="120">`, delay: 2000 },
+          { texto: `A carta que saiu para você foi <strong>${carta}</strong>:<br><img src="${img}" width="120">`, delay: 2000 },
           { texto: `Esta carta reflete sua jornada atual. Ela nos fala de um momento de <em>${tarotDeck[carta].normal}</em>. A presença dessa carta pode ser um sinal de que você está em um ponto decisivo da sua vida.`, delay: 3000 },
           { texto: "Como você está se sentindo no momento? Está enfrentando algum desafio pessoal?", delay: 2500 }
         ]
@@ -180,10 +181,13 @@ export default async function handler(req, res) {
     const resumos = cartas.map((c, i) => `Carta ${i + 1}: ${c} - ${tarotDeck[c].normal}`).join("\n");
     const finalMsg = await respostaIA(resumos);
 
-    const sequencia = cartas.flatMap((carta, i) => [
-      { texto: `Carta ${i + 1}: <strong>${carta}</strong><br><img src="${formatarNomeImagem(carta)}" width="120">`, delay: 1000 },
-      { texto: `<em>${tarotDeck[carta].normal}</em>`, delay: 3000 }
-    ]);
+    const sequencia = cartas.flatMap((carta, i) => {
+      const img = tarotDeck[carta]?.image || formatarNomeImagem(carta);
+      return [
+        { texto: `Carta ${i + 1}: <strong>${carta}</strong><br><img src="${img}" width="120">`, delay: 1000 },
+        { texto: `<em>${tarotDeck[carta].normal}</em>`, delay: 3000 }
+      ];
+    });
 
     sequencia.push({ texto: `🔮 Mística está conectando com as forças superiores...`, delay: 1500 });
     sequencia.push({ texto: finalMsg, delay: 3000 });
