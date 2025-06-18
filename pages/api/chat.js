@@ -1,7 +1,13 @@
 import tarotDeck from "../../lib/tarotDeck";
 
 export default async function handler(req, res) {
-  const { message, etapa = 0, respostasExtras = 0 } = req.body;
+  const {
+    message,
+    etapa = 0,
+    respostasExtras = 0,
+    planoSelecionado = null // ✅ Recebe o plano do frontend
+  } = req.body;
+
   const userMessage = message.toLowerCase();
   let novaEtapa = etapa;
   let novaRespostasExtras = respostasExtras;
@@ -101,7 +107,6 @@ export default async function handler(req, res) {
     });
   }
 
-  // 🔄 Etapa 4 agora já trata "1" ou "2" imediatamente
   if (etapa === 4) {
     if (message.trim() === "1" || message.trim() === "2") {
       novaEtapa = 6;
@@ -121,7 +126,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         etapa: novaEtapa,
         respostasExtras: 0,
-        planoEscolhido: plano,
+        planoSelecionado: message.trim(), // ✅ Salva o plano (1 ou 2)
         sequencia: [
           { texto: `Você escolheu o plano: <strong>${plano.nome}</strong>.`, delay: 1500 },
           { texto: `Para prosseguir, realize o pagamento pelo link abaixo:<br><a href="${plano.link}" target="_blank">${plano.link}</a>`, delay: 2000 },
@@ -159,7 +164,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         etapa: novaEtapa,
         respostasExtras: 0,
-        planoEscolhido: plano,
+        planoSelecionado: message.trim(),
         sequencia: [
           { texto: `Você escolheu o plano: <strong>${plano.nome}</strong>.`, delay: 1500 },
           { texto: `Para prosseguir, realize o pagamento pelo link abaixo:<br><a href="${plano.link}" target="_blank">${plano.link}</a>`, delay: 2000 },
@@ -178,8 +183,10 @@ export default async function handler(req, res) {
   }
 
   if (etapa === 6 && pagamentoDetectado) {
-    const total = message.includes("2") ? 5 : 3;
-    const filtro = message.includes("2") ? "todos" : "maiores";
+    // ✅ Usa planoSelecionado corretamente
+    const total = planoSelecionado === "2" ? 5 : 3;
+    const filtro = planoSelecionado === "2" ? "todos" : "maiores";
+
     novaEtapa = 7;
     novaRespostasExtras = 0;
 
