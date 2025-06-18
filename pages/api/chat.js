@@ -1,4 +1,4 @@
-// chat.js com controle de estado por etapa vinda do frontend
+// chat.js com carta grátis imediata após resposta afirmativa
 
 import tarotDeck from "../../lib/tarotDeck";
 
@@ -50,23 +50,16 @@ export default async function handler(req, res) {
   if (etapa === 1) {
     const resposta = await respostaIA(userMessage);
     if (resposta.toLowerCase().includes("sim")) {
-      novaEtapa = 2;
+      const carta = sortearCarta("maiores");
+      novaEtapa = 3;
       return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
-        { texto: "Perfeito. Antes de começarmos, diga seu nome e idade.", delay: 1500 }
+        { texto: `A carta que saiu para você foi <strong>${carta.nome}</strong> (${carta.posicao}):<br><img src="${carta.imagem}" width="120">`, delay: 2000 },
+        { texto: `<em>${carta.significado}</em>`, delay: 3000 },
+        { texto: "Se desejar uma leitura mais profunda, posso te apresentar outros caminhos...", delay: 2000 }
       ] });
     } else {
       return res.status(200).json({ etapa, respostasExtras, sequencia: [{ texto: resposta, delay: 1500 }] });
     }
-  }
-
-  if (etapa === 2) {
-    const carta = sortearCarta("maiores");
-    novaEtapa = 3;
-    return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
-      { texto: `A carta que saiu para você foi <strong>${carta.nome}</strong> (${carta.posicao}):<br><img src="${carta.imagem}" width="120">`, delay: 2000 },
-      { texto: `<em>${carta.significado}</em>`, delay: 3000 },
-      { texto: "Se desejar uma leitura mais profunda, posso te apresentar outros caminhos...", delay: 2000 }
-    ] });
   }
 
   if (etapa === 3) {
