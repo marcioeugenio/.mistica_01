@@ -1,4 +1,13 @@
 import tarotDeck from "../../lib/tarotDeck";
+import removeAccents from "remove-accents"; // Instale com: npm install remove-accents
+
+// Função para gerar o caminho seguro da imagem
+const formatarNomeImagem = (nome) => {
+  return `/tarot/${removeAccents(nome)
+    .toLowerCase()
+    .replace(/ /g, "-")
+    .replace(/[^\w-]/g, "")}.jpg`;
+};
 
 export default async function handler(req, res) {
   const {
@@ -72,7 +81,7 @@ export default async function handler(req, res) {
         etapa: novaEtapa,
         respostasExtras: 0,
         sequencia: [
-          { texto: `A carta que saiu para você foi <strong>${carta}</strong>:<br><img src="${tarotDeck[carta].image}" width="120">`, delay: 2000 },
+          { texto: `A carta que saiu para você foi <strong>${carta}</strong>:<br><img src="${formatarNomeImagem(carta)}" width="120">`, delay: 2000 },
           { texto: `Esta carta reflete sua jornada atual. Ela nos fala de um momento de <em>${tarotDeck[carta].normal}</em>. A presença dessa carta pode ser um sinal de que você está em um ponto decisivo da sua vida.`, delay: 3000 },
           { texto: "Como você está se sentindo no momento? Está enfrentando algum desafio pessoal?", delay: 2500 }
         ]
@@ -169,7 +178,7 @@ export default async function handler(req, res) {
     const finalMsg = await respostaIA(resumos);
 
     const sequencia = cartas.flatMap((carta, i) => [
-      { texto: `Carta ${i + 1}: <strong>${carta}</strong><br><img src="${tarotDeck[carta].image}" width="120">`, delay: 1000 },
+      { texto: `Carta ${i + 1}: <strong>${carta}</strong><br><img src="${formatarNomeImagem(carta)}" width="120">`, delay: 1000 },
       { texto: `<em>${tarotDeck[carta].normal}</em>`, delay: 3000 }
     ]);
 
