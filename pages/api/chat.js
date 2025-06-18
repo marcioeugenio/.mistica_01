@@ -1,5 +1,3 @@
-// chat.js com sorteio da carta gratuito baseado diretamente na mensagem do cliente
-
 import tarotDeck from "../../lib/tarotDeck";
 
 export default async function handler(req, res) {
@@ -13,7 +11,7 @@ export default async function handler(req, res) {
 
   const sortearCarta = (filtro) => {
     const baralho = Object.entries(tarotDeck).filter(([nome]) =>
-      filtro === "maiores" ? nome.match(/^(O |A )/) : true
+      filtro === "maiores" ? nome.match(/^(O |A )/) : true // Filtro para Arcanos Maiores
     );
     const [nome, dados] = baralho[Math.floor(Math.random() * baralho.length)];
     const posicao = Math.random() < 0.5 ? "normal" : "inverted";
@@ -51,7 +49,7 @@ export default async function handler(req, res) {
 
   if (etapa === 1) {
     if (userMessage.includes("sim")) {
-      const carta = sortearCarta("maiores");
+      const carta = sortearCarta("maiores"); // Sorteio com filtro para Arcanos Maiores
       novaEtapa = 3;
       return res.status(200).json({
         etapa: novaEtapa, respostasExtras: 0, sequencia: [
@@ -98,12 +96,12 @@ Após o pagamento, digite 1 ou 2 para iniciar.`,
     novaRespostasExtras = 0;
 
     const total = message.includes("2") ? 5 : 3;
-    const filtro = message.includes("2") ? "todos" : "maiores";
+    const filtro = message.includes("2") ? "todos" : "maiores"; // Usar "todos" para o pacote de 5 cartas
 
     const cartas = [];
     const usadas = new Set();
     while (cartas.length < total) {
-      const carta = sortearCarta(filtro);
+      const carta = sortearCarta(filtro); // Sorteio com base no filtro
       if (!usadas.has(carta.nome)) {
         usadas.add(carta.nome);
         cartas.push(carta);
