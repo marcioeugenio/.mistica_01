@@ -1,28 +1,16 @@
 import tarotDeck from "../../lib/tarotDeck";
 
-const removerAcentos = (texto) => {
-  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-};
-
-const formatarNomeImagem = (nome) => {
-  return `/tarot/${removerAcentos(nome)
-    .toLowerCase()
-    .replace(/ /g, "-")
-    .replace(/[^\w-]/g, "")}.jpg`;
-};
-
 export default async function handler(req, res) {
   const {
     message,
     etapa = 0,
     respostasExtras = 0,
-    planoSelecionado: planoAnterior = null
+    planoSelecionado = null
   } = req.body;
 
   const userMessage = message.toLowerCase();
   let novaEtapa = etapa;
   let novaRespostasExtras = respostasExtras;
-  let planoSelecionado = planoAnterior;
 
   const frasesPagamento = ["paguei", "fiz o pix", "realizei o pagamento", "comprei"];
   const pagamentoDetectado = frasesPagamento.some(f => userMessage.includes(f));
@@ -69,9 +57,7 @@ export default async function handler(req, res) {
   if (etapa === 0) {
     novaEtapa = 1;
     return res.status(200).json({
-      etapa: novaEtapa,
-      respostasExtras: 0,
-      sequencia: [
+      etapa: novaEtapa, respostasExtras: 0, sequencia: [
         { texto: "✨ Bem-vindo ao oráculo de Mística.", delay: 1000 },
         { texto: "Deseja receber uma carta gratuita de orientação espiritual?", delay: 1500 }
       ]
@@ -81,13 +67,12 @@ export default async function handler(req, res) {
   if (etapa === 1) {
     if (userMessage.includes("sim")) {
       const carta = sortearPrimeiraCarta();
-      const img = tarotDeck[carta]?.image || formatarNomeImagem(carta);
       novaEtapa = 3;
       return res.status(200).json({
         etapa: novaEtapa,
         respostasExtras: 0,
         sequencia: [
-          { texto: `A carta que saiu para você foi <strong>${carta}</strong>:<br><img src="${img}" width="120">`, delay: 2000 },
+          { texto: `A carta que saiu para você foi <strong>${carta}</strong>:<br><img src="${tarotDeck[carta].image}" width="120">`, delay: 2000 },
           { texto: `Esta carta reflete sua jornada atual. Ela nos fala de um momento de <em>${tarotDeck[carta].normal}</em>. A presença dessa carta pode ser um sinal de que você está em um ponto decisivo da sua vida.`, delay: 3000 },
           { texto: "Como você está se sentindo no momento? Está enfrentando algum desafio pessoal?", delay: 2500 }
         ]
@@ -106,19 +91,27 @@ export default async function handler(req, res) {
       respostasExtras: 0,
       sequencia: [
         { texto: respostaEmpatica, delay: 1500 },
-        { texto: "✨ Se você deseja aprofundar sua jornada espiritual, posso revelar ainda mais orientações através dos caminhos abaixo:", delay: 1500 },
-        { texto: "1 - Visão Mística (3 cartas) - R$39,90<br>2 - Pacote Místico Completo (5 cartas) - R$69,90", delay: 2000 },
-        { texto: "Escolha um plano para te ajudar a entender seu atual momento. Digite o plano desejado.", delay: 1500 }
+        {
+          texto: "✨ Se você deseja aprofundar sua jornada espiritual, posso revelar ainda mais orientações através dos caminhos abaixo:",
+          delay: 1500
+        },
+        {
+          texto: "1 - Visão Mística (3 cartas) - R$39,90<br>2 - Pacote Místico Completo (5 cartas) - R$69,90",
+          delay: 2000
+        },
+        {
+          texto: "Escolha um plano para te ajudar a entender seu atual momento. Digite o plano desejado.",
+          delay: 1500
+        }
       ]
     });
   }
 
   if (etapa === 4 || etapa === 5) {
     if (message.trim() === "1" || message.trim() === "2") {
-      planoSelecionado = message.trim();
       novaEtapa = 6;
 
-      const plano = planoSelecionado === "2" ? {
+      const plano = message.trim() === "2" ? {
         nome: "Pacote Místico Completo (5 cartas)",
         total: 5,
         filtro: "todos",
@@ -133,11 +126,14 @@ export default async function handler(req, res) {
       return res.status(200).json({
         etapa: novaEtapa,
         respostasExtras: 0,
-        planoSelecionado,
+        planoSelecionado: message.trim(),
         sequencia: [
           { texto: `Você escolheu o plano: <strong>${plano.nome}</strong>.`, delay: 1500 },
           { texto: `Para prosseguir, realize o pagamento pelo link abaixo:<br><a href="${plano.link}" target="_blank">${plano.link}</a>`, delay: 2000 },
-          { texto: "Após realizar o pagamento, me avise aqui para continuarmos com a sua consulta ao mundo espiritual. 🌙", delay: 2000 }
+          {
+            texto: "Após realizar o pagamento, me avise aqui para continuarmos com a sua consulta ao mundo espiritual. 🌙",
+            delay: 2000
+          }
         ]
       });
     } else {
@@ -172,30 +168,22 @@ export default async function handler(req, res) {
     const resumos = cartas.map((c, i) => `Carta ${i + 1}: ${c} - ${tarotDeck[c].normal}`).join("\n");
     const finalMsg = await respostaIA(resumos);
 
-    const sequencia = cartas.flatMap((carta, i) => {
-      const img = tarotDeck[carta]?.image || formatarNomeImagem(carta);
-      return [
-        { texto: `Carta ${i + 1}: <strong>${carta}</strong><br><img src="${img}" width="120">`, delay: 1000 },
-        { texto: `<em>${tarotDeck[carta].normal}</em>`, delay: 3000 }
-      ];
-    });
+    const sequencia = cartas.flatMap((carta, i) => [
+      { texto: `Carta ${i + 1}: <strong>${carta}</strong><br><img src="${tarotDeck[carta].image}" width="120">`, delay: 1000 },
+      { texto: `<em>${tarotDeck[carta].normal}</em>`, delay: 3000 }
+    ]);
 
-    sequencia.push({ texto: "🔮 Mística está conectando com as forças superiores...", delay: 1500 });
+    sequencia.push({ texto: `🔮 Mística está conectando com as forças superiores...`, delay: 1500 });
     sequencia.push({ texto: finalMsg, delay: 3000 });
 
-    return res.status(200).json({
-      etapa: novaEtapa,
-      respostasExtras: novaRespostasExtras,
-      sequencia
-    });
+    return res.status(200).json({ etapa: novaEtapa, respostasExtras: novaRespostasExtras, sequencia });
   }
 
   if (etapa === 7 && respostasExtras < 3) {
     novaRespostasExtras = respostasExtras + 1;
     const extra = await respostaIA(message);
     return res.status(200).json({
-      etapa,
-      respostasExtras: novaRespostasExtras,
+      etapa, respostasExtras: novaRespostasExtras,
       sequencia: [{ texto: extra, delay: 2000 }]
     });
   }
@@ -212,9 +200,5 @@ export default async function handler(req, res) {
   }
 
   const fallback = await respostaIA(message);
-  return res.status(200).json({
-    etapa,
-    respostasExtras,
-    sequencia: [{ texto: fallback, delay: 1500 }]
-  });
+  return res.status(200).json({ etapa, respostasExtras, sequencia: [{ texto: fallback, delay: 1500 }] });
 }
