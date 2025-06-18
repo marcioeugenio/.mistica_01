@@ -17,8 +17,7 @@ export default async function handler(req, res) {
   ];
 
   const sortearPrimeiraCarta = () => {
-    const cartaEscolhida = arcanosMaiores[Math.floor(Math.random() * arcanosMaiores.length)];
-    return cartaEscolhida;
+    return arcanosMaiores[Math.floor(Math.random() * arcanosMaiores.length)];
   };
 
   const sortearCarta = (filtro = "todos") => {
@@ -67,7 +66,7 @@ export default async function handler(req, res) {
         etapa: novaEtapa,
         respostasExtras: 0,
         sequencia: [
-          { texto: `A carta que saiu para você foi <strong>${carta}</strong>:<br><img src="/tarot/${carta.replace(" ", "-")}.jpg" width="120">`, delay: 2000 },
+          { texto: `A carta que saiu para você foi <strong>${carta}</strong>:<br><img src="${tarotDeck[carta].image}" width="120">`, delay: 2000 },
           { texto: `Esta carta reflete sua jornada atual. Ela nos fala de um momento de <em>${tarotDeck[carta].normal}</em>. A presença dessa carta pode ser um sinal de que você está em um ponto decisivo da sua vida. Como você está sentindo essas energias agora?`, delay: 3000 },
           { texto: "Como você está se sentindo no momento? Está enfrentando algum desafio pessoal?", delay: 2500 }
         ]
@@ -143,7 +142,7 @@ export default async function handler(req, res) {
     const finalMsg = await respostaIA(resumos);
 
     const sequencia = cartas.flatMap((carta, i) => [
-      { texto: `Carta ${i + 1}: <strong>${carta}</strong><br><img src="/tarot/${carta.replace(" ", "-")}.jpg" width="120">`, delay: 1000 },
+      { texto: `Carta ${i + 1}: <strong>${carta}</strong><br><img src="${tarotDeck[carta].image}" width="120">`, delay: 1000 },
       { texto: `<em>${tarotDeck[carta].normal}</em>`, delay: 3000 }
     ]);
 
