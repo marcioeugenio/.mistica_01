@@ -96,7 +96,7 @@ export default async function handler(req, res) {
           delay: 1500
         },
         {
-          texto: "1 - Visão Mística (3 cartas) - R$39,90<br>2 - Pacote Místico Completo (5 cartas) - R$69,90",
+          texto: "1 - Visão Mística (3 cartas) - R$39,90<br>2 - Pacote Místico Completo (5 cartas) - R$79,90",
           delay: 2000
         },
         {
