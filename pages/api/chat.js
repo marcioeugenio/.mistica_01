@@ -55,7 +55,7 @@ export default async function handler(req, res) {
         etapa: novaEtapa, respostasExtras: 0, sequencia: [
           { texto: `A carta que saiu para você foi <strong>${carta.nome}</strong> (${carta.posicao}):<br><img src="${carta.imagem}" width="120">`, delay: 2000 },
           { texto: `<em>${carta.significado}</em>`, delay: 3000 },
-          { texto: "Se desejar uma leitura mais profunda, posso te apresentar outros caminhos...", delay: 2000 }
+          { texto: "Como você está se sentindo no momento? Está enfrentando algum desafio pessoal?", delay: 2500 }
         ]
       });
     } else {
