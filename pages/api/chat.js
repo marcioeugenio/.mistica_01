@@ -1,9 +1,12 @@
 import tarotDeck from "../../lib/tarotDeck";
-import removeAccents from "remove-accents"; // Instale com: npm install remove-accents
 
-// Função para gerar o caminho seguro da imagem
+// Função nativa para remover acentos (compatível com Next.js/Node)
+const removerAcentos = (texto) => {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+};
+
 const formatarNomeImagem = (nome) => {
-  return `/tarot/${removeAccents(nome)
+  return `/tarot/${removerAcentos(nome)
     .toLowerCase()
     .replace(/ /g, "-")
     .replace(/[^\w-]/g, "")}.jpg`;
