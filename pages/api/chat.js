@@ -11,6 +11,9 @@ export default async function handler(req, res) {
     h.content?.toLowerCase().includes("a carta que saiu para você")
   );
 
+  // ✅ Suporte a letras com acento, maiúsculas e minúsculas
+  const contemDadosPessoais = /([\p{L}]{3,})[, ]+([0-9]{2})[, ]+([\p{L}]{3,})/ui.test(message);
+
   const sortearCarta = (filtro) => {
     const baralho = Object.entries(tarotDeck).filter(([nome]) =>
       filtro === "maiores" ? nome.match(/^(O |A )/) : true
@@ -25,10 +28,7 @@ export default async function handler(req, res) {
     };
   };
 
-  // Tiragem gratuita apenas se dados forem fornecidos
-  const contemDadosPessoais =
-    /([a-zA-Z]{3,})[, ]+([0-9]{2})[, ]+([a-zA-Z]{3,})/.test(userMessage);
-
+  // 📌 Tiragem gratuita
   if (!tirouCartaGratis && contemDadosPessoais) {
     const carta = sortearCarta("maiores");
 
@@ -54,6 +54,7 @@ Digite 1 ou 2 para escolher.`,
     });
   }
 
+  // 📌 Tiragem paga (com 3 ou 5 cartas)
   if (pagamentoDetectado || message === "1" || message === "2") {
     const plano = message === "2" || userMessage.includes("completo") ? "completo" : "visao";
     const total = plano === "completo" ? 5 : 3;
@@ -83,7 +84,7 @@ Digite 1 ou 2 para escolher.`,
         messages: [
           {
             role: "system",
-            content: `Você é Mística, uma sacerdotisa espiritual. Interprete as cartas abaixo com explicações simbólicas e espirituais para cada uma. Depois, traga uma conclusão final profunda que una o significado do conjunto como mensagem ao consulente.`
+            content: `Você é Mística, uma sacerdotisa espiritual. Interprete as cartas abaixo com explicações místicas e profundas, uma por uma. Ao final, traga uma conclusão espiritual que una o significado das cartas como uma mensagem final para o consulente.`
           },
           { role: "user", content: resumos }
         ]
@@ -121,7 +122,7 @@ Digite 1 ou 2 para escolher.`,
     return res.status(200).json({ sequencia });
   }
 
-  // IA normal para introdução e conversa
+  // 📌 Fallback: introdução e conversas normais
   const messages = [
     {
       role: "system",
