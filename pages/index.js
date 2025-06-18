@@ -1,232 +1,141 @@
-import { useState, useEffect, useRef } from "react";
+// chat.js com controle de estado por etapa vinda do frontend
 
-export default function Home() {
-  const [mensagem, setMensagem] = useState("");
-  const [chat, setChat] = useState([]);
-  const [digitando, setDigitando] = useState(false);
-  const [modalImagem, setModalImagem] = useState(null);
-  const [planoAtivo, setPlanoAtivo] = useState(false);
+import tarotDeck from "../../lib/tarotDeck";
 
-  const chatRef = useRef(null);
-  const userIdRef = useRef(
-    typeof window !== "undefined"
-      ? localStorage.getItem("userId") || crypto.randomUUID()
-      : ""
-  );
+export default async function handler(req, res) {
+  const { message, userId = "default", historico = [], etapa = 0, respostasExtras = 0 } = req.body;
+  const userMessage = message.toLowerCase();
+  let novaEtapa = etapa;
+  let novaRespostasExtras = respostasExtras;
 
-  useEffect(() => {
-    const plano = localStorage.getItem("planoAtivo");
-    if (plano === "true") setPlanoAtivo(true);
-  }, []);
+  const frasesPagamento = ["paguei", "fiz o pix", "realizei o pagamento", "comprei"];
+  const pagamentoDetectado = frasesPagamento.some(f => userMessage.includes(f));
 
-  useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+  const sortearCarta = (filtro) => {
+    const baralho = Object.entries(tarotDeck).filter(([nome]) =>
+      filtro === "maiores" ? nome.match(/^(O |A )/) : true
+    );
+    const [nome, dados] = baralho[Math.floor(Math.random() * baralho.length)];
+    const posicao = Math.random() < 0.5 ? "normal" : "inverted";
+    return { nome, posicao, significado: dados[posicao], imagem: dados.image };
+  };
+
+  const respostaIA = async (entrada) => {
+    const completions = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: "Você é Mística, uma sacerdotisa espiritual que responde com linguagem simbólica, intuitiva e mística." },
+          { role: "user", content: entrada }
+        ]
+      })
+    });
+    const data = await completions.json();
+    return data.choices[0].message.content;
+  };
+
+  if (etapa === 0) {
+    novaEtapa = 1;
+    return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
+      { texto: "✨ Bem-vindo ao oráculo de Mística.", delay: 1000 },
+      { texto: "Deseja receber uma carta gratuita de orientação espiritual?", delay: 1500 }
+    ] });
+  }
+
+  if (etapa === 1) {
+    const resposta = await respostaIA(userMessage);
+    if (resposta.toLowerCase().includes("sim")) {
+      novaEtapa = 2;
+      return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
+        { texto: "Perfeito. Antes de começarmos, diga seu nome e idade.", delay: 1500 }
+      ] });
+    } else {
+      return res.status(200).json({ etapa, respostasExtras, sequencia: [{ texto: resposta, delay: 1500 }] });
     }
-  }, [chat]);
+  }
 
-  const limparTexto = (texto) =>
-    texto
-      .replace(/\n/g, "<br>")
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/`(.*?)`/g, "<code>$1</code>")
-      .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+  if (etapa === 2) {
+    const carta = sortearCarta("maiores");
+    novaEtapa = 3;
+    return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
+      { texto: `A carta que saiu para você foi <strong>${carta.nome}</strong> (${carta.posicao}):<br><img src="${carta.imagem}" width="120">`, delay: 2000 },
+      { texto: `<em>${carta.significado}</em>`, delay: 3000 },
+      { texto: "Se desejar uma leitura mais profunda, posso te apresentar outros caminhos...", delay: 2000 }
+    ] });
+  }
 
-  const enviarMensagem = async () => {
-    if (!mensagem.trim()) return;
-
-    const novaMensagem = { remetente: "você", texto: mensagem };
-    const historicoAtualizado = [...chat, novaMensagem];
-    setChat(historicoAtualizado);
-    setMensagem("");
-    setDigitando(true);
-
-    try {
-      const resposta = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: mensagem,
-          userId: userIdRef.current,
-          planoAtivo,
-          historico: historicoAtualizado
-            .filter((m) => m.remetente !== "sistema")
-            .map((m) => ({
-              role: m.remetente === "você" ? "user" : "assistant",
-              content: m.texto,
-            })),
-        }),
-      });
-
-      const data = await resposta.json();
-
-      if (Array.isArray(data.sequencia)) {
-        for (const msg of data.sequencia) {
-          await new Promise((resolve) => setTimeout(resolve, msg.delay || 1000));
-          setChat((prev) => [
-            ...prev,
-            { remetente: "mística", texto: msg.texto },
-          ]);
-        }
-      } else {
-        setChat((prev) => [
-          ...prev,
-          { remetente: "mística", texto: data.text },
-        ]);
+  if (etapa === 3) {
+    novaEtapa = 4;
+    return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
+      {
+        texto: `Escolha um dos caminhos espirituais:<br><br>
+1 - Visão Mística (3 cartas) - R$39,90<br>
+2 - Pacote Místico Completo (5 cartas) - R$69,90<br><br>
+Após o pagamento, digite 1 ou 2 para iniciar.`,
+        delay: 2500
       }
-    } catch (e) {
-      setChat((prev) => [
-        ...prev,
-        { remetente: "mística", texto: "Erro ao obter resposta." },
-      ]);
-    } finally {
-      setDigitando(false);
+    ] });
+  }
+
+  if (etapa === 4) {
+    novaEtapa = 5;
+    return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
+      {
+        texto: "🌑 A sessão gratuita foi encerrada. Para novas revelações, selecione um dos caminhos místicos e realize o pagamento.",
+        delay: 2000
+      }
+    ] });
+  }
+
+  if (etapa === 5 && (message.includes("1") || message.includes("2") || await respostaIA(userMessage).then(r => r.toLowerCase().includes("paguei")))) {
+    novaEtapa = 6;
+    novaRespostasExtras = 0;
+
+    const total = message.includes("2") ? 5 : 3;
+    const filtro = message.includes("2") ? "todos" : "maiores";
+
+    const cartas = [];
+    const usadas = new Set();
+    while (cartas.length < total) {
+      const carta = sortearCarta(filtro);
+      if (!usadas.has(carta.nome)) {
+        usadas.add(carta.nome);
+        cartas.push(carta);
+      }
     }
-  };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      enviarMensagem();
-    }
-  };
+    const resumos = cartas.map((c, i) => `Carta ${i + 1}: ${c.nome} (${c.posicao}) - ${c.significado}`).join("\n");
+    const finalMsg = await respostaIA(resumos);
 
-  return (
-    <main
-      className="container"
-      style={{
-        maxWidth: "100%",
-        minHeight: "100vh",
-        backgroundColor: "#000",
-        color: "#fff",
-        padding: "1rem",
-        boxSizing: "border-box",
-      }}
-    >
-      <div style={{ textAlign: "center" }}>
-        <img
-          src="/camila_perfil.jpg"
-          alt="Mística"
-          style={{
-            width: "100px",
-            borderRadius: "50%",
-            border: "2px solid #d63384",
-            marginBottom: "1rem",
-            cursor: "pointer",
-          }}
-          onClick={() => setModalImagem("/camila_perfil.jpg")}
-        />
-        <h2 style={{ color: "#f0a" }}>Mística 🌙</h2>
-        <p style={{ fontSize: "14px" }}>Sacerdotisa do oráculo espiritual</p>
-      </div>
+    const sequencia = cartas.flatMap((carta, i) => [
+      { texto: `Carta ${i + 1}: <strong>${carta.nome}</strong> (${carta.posicao})<br><img src="${carta.imagem}" width="120">`, delay: 1000 },
+      { texto: `<em>${carta.significado}</em>`, delay: 3000 }
+    ]);
 
-      <div
-        id="chat"
-        ref={chatRef}
-        style={{
-          background: "#111",
-          border: "1px solid #333",
-          borderRadius: "8px",
-          padding: "1rem",
-          height: "55vh",
-          overflowY: "auto",
-          marginBottom: "1rem",
-        }}
-      >
-        {chat.map((msg, index) => (
-          <div key={index} style={{ marginBottom: "0.5rem" }}>
-            <strong
-              style={{
-                color: msg.remetente === "você" ? "#0d6efd" : "#d63384",
-              }}
-            >
-              {msg.remetente}:
-            </strong>{" "}
-            <span
-              dangerouslySetInnerHTML={{ __html: limparTexto(msg.texto) }}
-            />
-          </div>
-        ))}
-        {digitando && (
-          <p style={{ color: "#888", fontStyle: "italic" }}>
-            Mística está digitando...
-          </p>
-        )}
-      </div>
+    sequencia.push({ texto: `🔮 Mística está conectando com as forças superiores...`, delay: 1500 });
+    sequencia.push({ texto: finalMsg, delay: 3000 });
 
-      <textarea
-        rows="2"
-        className="form-control"
-        placeholder="Digite sua mensagem..."
-        value={mensagem}
-        onChange={(e) => setMensagem(e.target.value)}
-        onKeyDown={handleKeyDown}
-        style={{
-          resize: "none",
-          background: "#222",
-          color: "#fff",
-          border: "1px solid #444",
-        }}
-      />
-      <button
-        className="btn btn-primary"
-        style={{ marginTop: "1rem" }}
-        onClick={enviarMensagem}
-      >
-        Enviar
-      </button>
+    return res.status(200).json({ etapa: novaEtapa, respostasExtras: novaRespostasExtras, sequencia });
+  }
 
-      {planoAtivo && (
-        <div style={{ marginTop: "2rem", textAlign: "center" }}>
-          <p>✨ Conteúdo desbloqueado ✨</p>
-          {[...Array(6)].map((_, i) => (
-            <img
-              key={i}
-              src={`/mistica_oraculo/mistica_${i + 1}.jpg`}
-              alt={`mistica_${i + 1}`}
-              style={{
-                width: "80px",
-                margin: "0.25rem",
-                borderRadius: "4px",
-              }}
-            />
-          ))}
-          <p style={{ marginTop: "1rem" }}>
-            <a
-              href="/mistica_ritual.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: "#0dcaf0" }}
-            >
-              📄 Ver PDF Místico
-            </a>
-          </p>
-        </div>
-      )}
+  if (etapa === 6 && respostasExtras < 3) {
+    novaRespostasExtras = respostasExtras + 1;
+    const extra = await respostaIA(message);
+    return res.status(200).json({ etapa, respostasExtras: novaRespostasExtras, sequencia: [{ texto: extra, delay: 2000 }] });
+  }
 
-      {modalImagem && (
-        <div
-          onClick={() => setModalImagem(null)}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0,0,0,0.85)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <img
-            src={modalImagem}
-            alt="ampliada"
-            style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: "10px" }}
-          />
-        </div>
-      )}
-    </main>
-  );
+  if (etapa === 6 && respostasExtras >= 3) {
+    novaEtapa = 4;
+    return res.status(200).json({ etapa: novaEtapa, respostasExtras: 0, sequencia: [
+      { texto: "🌑 A consulta foi concluída. Para mais respostas, reinicie sua jornada espiritual.", delay: 2000 }
+    ] });
+  }
+
+  const fallback = await respostaIA(message);
+  return res.status(200).json({ etapa, respostasExtras, sequencia: [{ texto: fallback, delay: 1500 }] });
 }
